@@ -23,9 +23,10 @@
             <template #tab-panel="{ tab }">
                 <div class="py-4">
                     <WikiDocumentList 
-                        v-if="tab.name === 'pages' && wikiTree.data" 
+                        v-if="tab.name === 'pages' && space.doc && wikiTree.data" 
                         :tree-data="wikiTree.data" 
                         :space-id="spaceId"
+                        :root-node="space.doc.root_group"
                         @refresh="wikiTree.reload()" 
                     />
                     <SpaceSettings 
@@ -45,7 +46,6 @@ import WikiDocumentList from '../components/WikiDocumentList.vue';
 import SpaceSettings from '../components/SpaceSettings.vue';
 import LucideFileText from '~icons/lucide/file-text';
 import LucideSettings from '~icons/lucide/settings';
-import LucideArrowLeft from '~icons/lucide/arrow-left';
 
 const props = defineProps({
     spaceId: {
@@ -72,8 +72,8 @@ const tabs = [
 const space = createDocumentResource({
     doctype: 'Wiki Space',
     name: props.spaceId,
+    auto: true
 });
-space.reload();
 
 const wikiTree = createResource({
     url: '/api/method/wiki.api.get_wiki_tree',

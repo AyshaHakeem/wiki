@@ -4,13 +4,13 @@
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-medium text-ink-gray-8">{{ __('Pages') }}</h2>
             <div class="flex gap-2">
-                <Button variant="subtle" @click="openCreateDialog(treeData.root_group, true)">
+                <Button variant="subtle" @click="openCreateDialog(rootNode, true)">
                     <template #prefix>
                         <LucideFolderPlus class="size-4" />
                     </template>
                     {{ __('New Group') }}
                 </Button>
-                <Button variant="solid" @click="openCreateDialog(treeData.root_group, false)">
+                <Button variant="solid" @click="openCreateDialog(rootNode, false)">
                     <template #prefix>
                         <LucideFilePlus class="size-4" />
                     </template>
@@ -25,7 +25,7 @@
             <LucideFileText class="size-12 text-ink-gray-4 mb-4" />
             <h3 class="text-lg font-medium text-ink-gray-7 mb-2">{{ __('No pages yet') }}</h3>
             <p class="text-sm text-ink-gray-5 mb-6">{{ __('Create your first page to get started') }}</p>
-            <Button variant="solid" @click="openCreateDialog(treeData.root_group, false)">
+            <Button variant="solid" @click="openCreateDialog(rootNode, false)">
                 <template #prefix>
                     <LucideFilePlus class="size-4" />
                 </template>
@@ -140,6 +140,10 @@ const props = defineProps({
         required: true,
     },
     spaceId: {
+        type: String,
+        required: true,
+    },
+    rootNode: {
         type: String,
         required: true,
     },

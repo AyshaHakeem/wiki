@@ -63,6 +63,8 @@
             :placeholder="__('my-wiki-space')"
             :description="__('The URL path for this wiki space (e.g., /my-wiki-space)')"
           />
+
+          <ErrorMessage :message="spaces.insert.error" />
         </div>
       </template>
     </Dialog>
@@ -77,6 +79,7 @@ import {
   Button,
   Dialog,
   FormControl,
+  ErrorMessage,
 } from "frappe-ui";
 import LucidePlus from "~icons/lucide/plus";
 
@@ -128,7 +131,7 @@ const columns = [
 
 const spaces = createListResource({
   doctype: "Wiki Space",
-  fields: ["name", "space_name", "route"],
+  fields: ["name", "space_name", "route", "root_group"],
   orderBy: "creation desc",
   pageLength: 20,
   auto: true,

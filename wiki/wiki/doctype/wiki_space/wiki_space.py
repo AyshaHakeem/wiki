@@ -34,25 +34,22 @@ class WikiSpace(Document):
 
 	def before_insert(self):
 		# insert a new wiki page when sidebar is empty
-		if not self.wiki_sidebars:
-			wiki_page = frappe.get_doc(
+		self.create_root_group()
+
+	def create_root_group(self):
+		if not self.root_group:
+			root_group = frappe.get_doc(
 				{
-					"doctype": "Wiki Page",
-					"title": "New Wiki Page",
-					"route": f"{self.route}/new-wiki-page",
-					"published": 1,
-					"content": f"Welcome to Wiki Space {self.route}",
+					"doctype": "Wiki Document",
+					"title": f"{self.space_name} [Root Group]",
+					"route": f"/{self.route}",
+					"is_group": 1,
+					"published": 0,
+					"content": "[root_group]",
 				}
 			)
-			wiki_page.insert()
-
-			self.append(
-				"wiki_sidebars",
-				{
-					"wiki_page": wiki_page.name,
-					"parent_label": "New Group",
-				},
-			)
+			root_group.insert()
+			self.root_group = root_group.name
 
 	def before_save(self):
 		self.update_wiki_page_routes()
@@ -88,27 +85,28 @@ class WikiSpace(Document):
 					raise e
 
 	def on_update(self):
-		build_index_in_background()
+		# build_index_in_background()
 
 		# clear sidebar cache
-		frappe.cache().hdel("wiki_sidebar", self.name)
+		# frappe.cache().hdel("wiki_sidebar", self.name)
+		pass
 
-	def on_trash(self):
-		drop_index()
+	# def on_trash(self):
+	# 	drop_index()
 
-		# clear sidebar cache
-		frappe.cache().hdel("wiki_sidebar", self.name)
-		build_index_in_background()
+	# 	# clear sidebar cache
+	# 	frappe.cache().hdel("wiki_sidebar", self.name)
+	# 	build_index_in_background()
 
-	@frappe.whitelist()
-	def clone_wiki_space_in_background(self, new_space_route):
-		frappe.enqueue(
-			clone_wiki_space,
-			name=self.name,
-			route=self.route,
-			new_space_route=new_space_route,
-			queue="long",
-		)
+	# @frappe.whitelist()
+	# def clone_wiki_space_in_background(self, new_space_route):
+	# 	frappe.enqueue(
+	# 		clone_wiki_space,
+	# 		name=self.name,
+	# 		route=self.route,
+	# 		new_space_route=new_space_route,
+	# 		queue="long",
+	# 	)
 
 
 def clone_wiki_space(name, route, new_space_route):
