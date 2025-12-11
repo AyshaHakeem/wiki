@@ -2,8 +2,7 @@
     <div>
         <!-- Node Row -->
         <div 
-            class="flex items-center justify-between px-4 py-2 hover:bg-surface-gray-2 group border-b border-outline-gray-1"
-            :class="{ 'cursor-pointer': !node.is_group }"
+            class="flex items-center justify-between px-4 py-2 hover:bg-surface-gray-2 group border-b border-outline-gray-1 cursor-pointer"
             :style="{ paddingLeft: `${level * 24 + 16}px` }"
             @click="handleRowClick"
         >
@@ -94,8 +93,11 @@ function toggleExpanded() {
 }
 
 function handleRowClick() {
-    // Navigate to edit page only for non-group nodes (pages)
-    if (!props.node.is_group) {
+    if (props.node.is_group) {
+        // Toggle expand/collapse for groups
+        toggleExpanded();
+    } else {
+        // Navigate to edit page for pages
         router.push({ name: 'WikiDocument', params: { pageId: props.node.name } });
     }
 }
