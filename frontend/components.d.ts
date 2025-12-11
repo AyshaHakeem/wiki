@@ -13,8 +13,10 @@ declare module 'vue' {
 		RouterView: typeof import('vue-router')['RouterView'];
 		Sidebar: typeof import('./src/components/Sidebar.vue')['default'];
 		SpaceList: typeof import('./src/components/SpaceList.vue')['default'];
+		WikiBreadcrumbs: typeof import('./src/components/WikiBreadcrumbs.vue')['default'];
 		WikiDocumentList: typeof import('./src/components/WikiDocumentList.vue')['default'];
 		WikiEditor: typeof import('./src/components/WikiEditor.vue')['default'];
 		WikiEditorWrapper: typeof import('./src/components/WikiEditorWrapper.vue')['default'];
+		WikiTreeNode: typeof import('./src/components/WikiTreeNode.vue')['default'];
 	}
 }

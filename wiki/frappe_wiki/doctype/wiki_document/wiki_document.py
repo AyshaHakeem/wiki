@@ -38,6 +38,75 @@ class WikiDocument(NestedSet):
 		if not self.route:
 			self.route = frappe.website.utils.cleanup_page_name(self.title).replace("_", "-")
 
+	@frappe.whitelist()
+	def get_breadcrumbs(self) -> dict:
+		"""Get the breadcrumb trail for this Wiki Document including space info."""
+		ancestors = self.get_ancestors()
+
+		# Build breadcrumb items from ancestors (excluding root)
+		breadcrumb_items = []
+		for ancestor_name in reversed(ancestors):
+			doc = frappe.get_cached_doc("Wiki Document", ancestor_name)
+			breadcrumb_items.append(
+				{
+					"name": doc.name,
+					"title": doc.title,
+					"is_group": doc.is_group,
+				}
+			)
+
+		# Get the space that owns this document tree
+		space = None
+		root_group = None
+
+		if ancestors:
+			# ancestors are ordered from immediate parent to root, so last item is root
+			root_group = ancestors[-1]
+		elif self.parent_wiki_document:
+			# Document is direct child of root group, parent is the root
+			root_group = self.parent_wiki_document
+
+		if root_group:
+			space_name = frappe.get_cached_value("Wiki Space", {"root_group": root_group}, "name")
+			if space_name:
+				space_doc = frappe.get_cached_doc("Wiki Space", space_name)
+				space = {
+					"name": space_doc.name,
+					"space_name": space_doc.space_name,
+					"route": space_doc.route,
+				}
+
+		return {
+			"ancestors": breadcrumb_items,
+			"space": space,
+			"current": {
+				"name": self.name,
+				"title": self.title,
+			},
+		}
+
+	@frappe.whitelist()
+	def get_children_count(self) -> int:
+		"""Get the count of children for this Wiki Document."""
+		descendants = get_descendants_of("Wiki Document", self.name)
+		return len(descendants) if descendants else 0
+
+	@frappe.whitelist()
+	def delete_with_children(self) -> dict:
+		"""Delete this Wiki Document and all its children."""
+		descendants = get_descendants_of("Wiki Document", self.name)
+		child_count = len(descendants) if descendants else 0
+
+		# Delete all descendants first (NestedSet requires this)
+		if descendants:
+			for child_name in reversed(descendants):
+				frappe.delete_doc("Wiki Document", child_name, force=True)
+
+		# Delete the document itself
+		frappe.delete_doc("Wiki Document", self.name, force=True)
+
+		return {"deleted": self.name, "children_deleted": child_count}
+
 
 class WikiDocumentRenderer(BaseRenderer):
 	def can_render(self) -> bool:
@@ -125,3 +194,10 @@ def build_nested_wiki_tree(documents: list[str]):
 		return False
 
 	return remove_empty_groups(root_nodes)
+
+
+@frappe.whitelist()
+def get_breadcrumbs(name: str) -> dict:
+	"""Get the breadcrumb trail for a Wiki Document including space info."""
+	doc = frappe.get_cached_doc("Wiki Document", name)
+	return doc.get_breadcrumbs()
