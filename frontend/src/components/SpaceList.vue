@@ -131,17 +131,12 @@ const spaces = createListResource({
   orderBy: "creation desc",
   pageLength: 20,
   auto: true,
-});
-
-const createSpace = createListResource({
-  doctype: "Wiki Space",
   insert: {
     onSuccess: () => {
       showCreateDialog.value = false;
       newSpace.space_name = "";
       newSpace.route = "";
       routeManuallyEdited.value = false;
-      spaces.reload();
     },
   },
 });
@@ -151,7 +146,7 @@ const handleCreateSpace = () => {
     return Promise.reject(new Error("Route is required"));
   }
 
-  return createSpace.insert.submit({
+  return spaces.insert.submit({
     space_name: newSpace.space_name,
     route: newSpace.route,
   });
