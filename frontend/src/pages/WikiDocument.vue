@@ -25,7 +25,7 @@
         </div>
 
         <MilkdownProvider>
-            <WikiEditor :content="wikiDoc.doc.content" @save="saveContent" />
+            <WikiEditor :content="wikiDoc.doc.content" :saving="wikiDoc.setValue.loading" @save="saveContent" />
         </MilkdownProvider>
     </div>
 </div>

@@ -4,8 +4,10 @@
         <div class="flex items-center justify-end gap-2 mb-3">
             <Button 
                 variant="solid" 
-                :loading="saving" 
+                :loading="props.saving" 
+                :disabled="!hasUnsavedChanges"
                 @click="saveToDB"
+                :loading-text="__('Saving...')"
             >
                 <template #prefix>
                     <LucideSave class="size-4" />
@@ -15,7 +17,7 @@
         </div>
 
         <!-- Milkdown Editor -->
-        <div class="wiki-milkdown-editor">
+        <div class="wiki-milkdown-editor" @keydown="handleContentChange" @input="handleContentChange">
             <Milkdown autofocus />
         </div>
     </div>
@@ -25,7 +27,7 @@
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
 
-import { ref } from "vue";
+import { ref, onUnmounted } from "vue";
 import { Crepe } from "@milkdown/crepe";
 import { Milkdown, useEditor, useInstance } from "@milkdown/vue";
 import { useFileUpload, toast } from "frappe-ui";
@@ -35,11 +37,21 @@ const props = defineProps({
     content: {
         type: String,
         default: "",
+    },
+    saving: {
+        type: Boolean,
+        default: false,
     }
 });
 
 const emit = defineEmits(['save']);
-const saving = ref(false);
+const hasUnsavedChanges = ref(false);
+const lastSavedAt = ref(null);
+const lastSavedContent = ref(props.content || "");
+
+// Autosave configuration
+const AUTOSAVE_DELAY = 2000; // 3 seconds debounce
+let autosaveTimer = null;
 
 // File upload composable from frappe-ui
 const fileUploader = useFileUpload();
@@ -87,29 +99,69 @@ const editor = useEditor((root) => {
 // Use useInstance to check if editor is ready
 const [isLoading, getInstance] = useInstance();
 
-async function saveToDB() {
-    saving.value = true;
-    try {
-        if (isLoading.value) {
-            toast.error('Editor is still loading');
-            return;
-        }
+function handleContentChange() {
+    // Clear existing timer
+    if (autosaveTimer) {
+        clearTimeout(autosaveTimer);
+    }
+
+    // Check if content has changed
+    const currentContent = crepeInstance?.getMarkdown();
+    if (currentContent !== undefined && currentContent !== lastSavedContent.value) {
+        hasUnsavedChanges.value = true;
         
-        // Get markdown from the Crepe instance
-        const markdown = crepeInstance?.getMarkdown();
-        if (markdown !== undefined) {
-            emit('save', markdown);
-            toast.success('Page saved successfully');
-        } else {
-            toast.error('Could not get content from editor');
-        }
-    } catch (error) {
-        console.error('Failed to save page:', error);
-        toast.error('Failed to save page');
-    } finally {
-        saving.value = false;
+        // Set up debounced autosave
+        autosaveTimer = setTimeout(() => {
+            autoSave();
+        }, AUTOSAVE_DELAY);
     }
 }
+
+async function autoSave() {
+    if (props.saving || isLoading.value) {
+        return;
+    }
+
+    const currentContent = crepeInstance?.getMarkdown();
+    if (currentContent === undefined || currentContent === lastSavedContent.value) {
+        hasUnsavedChanges.value = false;
+        return;
+    }
+
+    emit('save', currentContent);
+    lastSavedContent.value = currentContent;
+    lastSavedAt.value = new Date();
+    hasUnsavedChanges.value = false;
+}
+
+function saveToDB() {
+    // Clear any pending autosave
+    if (autosaveTimer) {
+        clearTimeout(autosaveTimer);
+    }
+
+    if (isLoading.value) {
+        toast.error('Editor is still loading');
+        return;
+    }
+    
+    // Get markdown from the Crepe instance
+    const markdown = crepeInstance?.getMarkdown();
+    if (markdown !== undefined) {
+        emit('save', markdown);
+        lastSavedContent.value = markdown;
+        lastSavedAt.value = new Date();
+        hasUnsavedChanges.value = false;
+    } else {
+        toast.error('Could not get content from editor');
+    }
+}
+
+onUnmounted(() => {
+    if (autosaveTimer) {
+        clearTimeout(autosaveTimer);
+    }
+});
 </script>
 
 <style>
