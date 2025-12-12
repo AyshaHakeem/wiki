@@ -1,21 +1,5 @@
 <template>
     <div class="wiki-editor-container">
-        <!-- Editor Toolbar -->
-        <div class="flex items-center justify-end gap-2 mb-3">
-            <Button 
-                variant="solid" 
-                :loading="props.saving" 
-                :disabled="!hasUnsavedChanges"
-                @click="saveToDB"
-                :loading-text="__('Saving...')"
-            >
-                <template #prefix>
-                    <LucideSave class="size-4" />
-                </template>
-                {{ __('Save') }}
-            </Button>
-        </div>
-
         <!-- Milkdown Editor -->
         <div class="wiki-milkdown-editor" @keydown="handleContentChange" @input="handleContentChange">
             <Milkdown autofocus />
@@ -31,7 +15,6 @@ import { ref, onUnmounted } from "vue";
 import { Crepe } from "@milkdown/crepe";
 import { Milkdown, useEditor, useInstance } from "@milkdown/vue";
 import { useFileUpload, toast } from "frappe-ui";
-import LucideSave from "~icons/lucide/save";
 
 const props = defineProps({
     content: {
@@ -156,6 +139,12 @@ function saveToDB() {
         toast.error('Could not get content from editor');
     }
 }
+
+// Expose saveToDB so parent component can trigger save
+defineExpose({
+    saveToDB,
+    hasUnsavedChanges,
+});
 
 onUnmounted(() => {
     if (autosaveTimer) {
