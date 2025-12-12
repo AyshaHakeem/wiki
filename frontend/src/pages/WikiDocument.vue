@@ -31,7 +31,7 @@
                 </Button>
                 <Button 
                     variant="outline"
-                    :href="`/${wikiDoc.doc.route}`"
+                    :link="`http://wiki.localhost:8000/${wikiDoc.doc.route}`"
                     target="_blank"
                 >
                     <template #prefix>
