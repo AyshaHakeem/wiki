@@ -6,7 +6,7 @@ import { defineConfig } from 'vite';
 async function getFrappeUIPlugin(isDev) {
 	if (isDev) {
 		try {
-			const module = await import('./frappe-ui/vite');
+			const module = await import('../frappe-ui/vite');
 			return module.default;
 		} catch (error) {
 			console.warn(
