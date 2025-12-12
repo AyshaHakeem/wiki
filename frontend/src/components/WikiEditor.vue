@@ -14,6 +14,7 @@ import "@milkdown/crepe/theme/frame.css";
 import { ref, onUnmounted } from "vue";
 import { Crepe } from "@milkdown/crepe";
 import { Milkdown, useEditor, useInstance } from "@milkdown/vue";
+import { upload, uploadConfig } from "@milkdown/kit/plugin/upload";
 import { useFileUpload, toast } from "frappe-ui";
 
 const props = defineProps({
@@ -61,6 +62,49 @@ async function uploadImage(file) {
     }
 }
 
+/**
+ * Custom uploader for drag-and-drop file uploads
+ * This is used by @milkdown/plugin-upload for handling dropped files
+ */
+async function dragDropUploader(files, schema) {
+    const nodes = [];
+    
+    for (let i = 0; i < files.length; i++) {
+        const file = files.item(i);
+        if (!file) continue;
+        
+        // Only handle image files
+        if (!file.type.includes('image')) {
+            toast.warning(`Skipped non-image file: ${file.name}`);
+            continue;
+        }
+        
+        try {
+            const result = await fileUploader.upload(file, {
+                private: false,
+                optimize: true
+            });
+            
+            // Create an image node with the uploaded URL
+            const imageNode = schema.nodes.image.createAndFill({
+                src: result.file_url,
+                alt: file.name
+            });
+            
+            if (imageNode) {
+                nodes.push(imageNode);
+            }
+            
+            toast.success(`Uploaded: ${file.name}`);
+        } catch (error) {
+            console.error('Image upload failed:', error);
+            toast.error(`Failed to upload: ${file.name}`);
+        }
+    }
+    
+    return nodes;
+}
+
 const content = props.content || "";
 
 // Store the Crepe instance for later access
@@ -76,6 +120,18 @@ const editor = useEditor((root) => {
             },
         },
     });
+    
+    // Add the upload plugin for drag-and-drop support
+    // Access the underlying Milkdown editor to add plugins
+    crepeInstance.editor
+        .config((ctx) => {
+            ctx.update(uploadConfig.key, (prev) => ({
+                ...prev,
+                uploader: dragDropUploader,
+            }));
+        })
+        .use(upload);
+    
     return crepeInstance;
 });
 
