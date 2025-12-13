@@ -15,15 +15,26 @@ const routes = [
 	},
 	{
 		path: '/spaces/:spaceId',
-		name: 'SpaceDetails',
 		component: () => import('@/pages/SpaceDetails.vue'),
 		props: true,
-	},
-	{
-		path: '/pages/:pageId',
-		name: 'WikiDocument',
-		component: () => import('@/pages/WikiDocument.vue'),
-		props: true,
+		children: [
+			{
+				path: '',
+				name: 'SpaceDetails',
+				component: () => import('@/components/SpaceWelcome.vue'),
+			},
+			{
+				path: 'page/:pageId',
+				name: 'SpacePage',
+				component: () => import('@/components/WikiDocumentPanel.vue'),
+				props: true,
+			},
+			{
+				path: 'settings',
+				name: 'SpaceSettings',
+				component: () => import('@/components/SpaceSettings.vue'),
+			},
+		],
 	},
 ];
 

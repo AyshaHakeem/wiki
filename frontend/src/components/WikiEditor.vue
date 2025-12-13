@@ -16,6 +16,7 @@ import { Crepe } from "@milkdown/crepe";
 import { Milkdown, useEditor, useInstance } from "@milkdown/vue";
 import { upload, uploadConfig } from "@milkdown/kit/plugin/upload";
 import { useFileUpload, toast } from "frappe-ui";
+import { videoBlockComponent } from "./milkdown-video-block/index.js";
 
 const props = defineProps({
     content: {
@@ -99,13 +100,24 @@ async function dragDropUploader(files, schema) {
                     nodes.push(imageNode);
                 }
             } else if (isVideo) {
-                // Create a link node for video files (renders as clickable link)
-                // Format: [filename](url)
-                const linkMark = schema.marks.link.create({ href: result.file_url });
-                const textNode = schema.text(file.name, [linkMark]);
+                // Create a video-block node for video files
+                // Uses our custom video-block schema that renders as HTML video player
+                const videoNode = schema.nodes['video-block']?.createAndFill({
+                    src: result.file_url
+                });
                 
-                if (textNode) {
-                    nodes.push(textNode);
+                if (videoNode) {
+                    nodes.push(videoNode);
+                } else {
+                    // Fallback: if video-block not available, use image node
+                    // (will display as broken image but preserves the URL)
+                    const imageNode = schema.nodes.image.createAndFill({
+                        src: result.file_url,
+                        alt: file.name
+                    });
+                    if (imageNode) {
+                        nodes.push(imageNode);
+                    }
                 }
             }
             
@@ -144,7 +156,8 @@ const editor = useEditor((root) => {
                 uploader: dragDropUploader,
             }));
         })
-        .use(upload);
+        .use(upload)
+        .use(videoBlockComponent);
     
     return crepeInstance;
 });

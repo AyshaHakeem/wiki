@@ -15,12 +15,13 @@
         <template #item="{ element }">
             <div class="draggable-item">
                 <!-- Node Row -->
-                <div 
-                    class="flex items-center justify-between px-4 py-2 hover:bg-surface-gray-2 group border-b border-outline-gray-1 cursor-pointer"
-                    :style="{ paddingLeft: `${level * 24 + 16}px` }"
+                <div
+                    class="flex items-center justify-between pr-2 py-1.5 hover:bg-surface-gray-2 group border-b border-outline-gray-1 cursor-pointer"
+                    :class="{ 'bg-surface-blue-1': !element.is_group && element.name === selectedPageId }"
+                    :style="{ paddingLeft: `${level * 12 + 8}px` }"
                     @click="handleRowClick(element)"
                 >
-                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5 flex-1 min-w-0">
                         <!-- Drag Handle -->
                         <button 
                             class="drag-handle p-0.5 hover:bg-surface-gray-3 rounded cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
@@ -40,7 +41,7 @@
                                 :class="{ 'rotate-90': isExpanded(element.name) }"
                             />
                         </button>
-                        <div v-else class="w-5" />
+                        <div v-else class="w-4" />
 
                         <!-- Icon -->
                         <LucideFolder v-if="element.is_group" class="size-4 text-ink-gray-5 flex-shrink-0" />
@@ -54,9 +55,9 @@
                             {{ element.title }}
                         </span>
 
-                        <!-- Unpublished Badge (only for pages, not groups) -->
+                        <!-- Not Published Badge (only for pages, not groups) -->
                         <Badge v-if="!element.is_group && !element.is_published" variant="subtle" theme="orange" size="sm">
-                            {{ __('Unpublished') }}
+                            {{ __('Not Published') }}
                         </Badge>
                     </div>
 
@@ -76,6 +77,8 @@
                         :items="element.children || []"
                         :level="level + 1"
                         :parent-name="element.name"
+                        :space-id="spaceId"
+                        :selected-page-id="selectedPageId"
                         @create="(parent, isGroup) => emit('create', parent, isGroup)"
                         @delete="(n) => emit('delete', n)"
                         @update="handleNestedUpdate"
@@ -115,6 +118,14 @@ const props = defineProps({
         type: String,
         default: null,
     },
+    spaceId: {
+        type: String,
+        default: null,
+    },
+    selectedPageId: {
+        type: String,
+        default: null,
+    },
 });
 
 const emit = defineEmits(['create', 'delete', 'update']);
@@ -143,7 +154,7 @@ function handleRowClick(element) {
     if (element.is_group) {
         toggleExpanded(element.name);
     } else {
-        router.push({ name: 'WikiDocument', params: { pageId: element.name } });
+        router.push({ name: 'SpacePage', params: { spaceId: props.spaceId, pageId: element.name } });
     }
 }
 

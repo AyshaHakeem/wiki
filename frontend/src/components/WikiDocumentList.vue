@@ -1,26 +1,16 @@
 <template>
     <div>
         <!-- Header with Add buttons -->
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-medium text-ink-gray-8">{{ __('Pages') }}</h2>
+        <div class="flex items-center justify-end mb-4">
             <div class="flex gap-2">
-                <Button variant="subtle" @click="openCreateDialog(rootNode, true)">
-                    <template #prefix>
-                        <LucideFolderPlus class="size-4" />
-                    </template>
-                    {{ __('New Group') }}
-                </Button>
-                <Button variant="solid" @click="openCreateDialog(rootNode, false)">
-                    <template #prefix>
-                        <LucideFilePlus class="size-4" />
-                    </template>
-                    {{ __('New Page') }}
+                <Button :title="__('New Group')" icon="folder-plus" variant="subtle" @click="openCreateDialog(rootNode, true)"></Button>
+                <Button :title="__('New Page')" icon="file-plus" variant="subtle" @click="openCreateDialog(rootNode, false)">
                 </Button>
             </div>
         </div>
 
         <!-- Empty State -->
-        <div v-if="!treeData.children || treeData.children.length === 0" 
+        <div v-if="!treeData.children || treeData.children.length === 0"
             class="flex flex-col items-center justify-center py-16 border border-dashed border-outline-gray-2 rounded-lg">
             <LucideFileText class="size-12 text-ink-gray-4 mb-4" />
             <h3 class="text-lg font-medium text-ink-gray-7 mb-2">{{ __('No pages yet') }}</h3>
@@ -35,14 +25,9 @@
 
         <!-- Tree View with Drag and Drop -->
         <div v-else class="border border-outline-gray-2 rounded-lg overflow-hidden">
-            <NestedDraggable
-                :items="treeData.children"
-                :level="0"
-                :parent-name="rootNode"
-                @create="openCreateDialog"
-                @delete="openDeleteDialog"
-                @update="handleTreeUpdate"
-            />
+            <NestedDraggable :items="treeData.children" :level="0" :parent-name="rootNode" :space-id="spaceId"
+                :selected-page-id="selectedPageId" @create="openCreateDialog" @delete="openDeleteDialog"
+                @update="handleTreeUpdate" />
         </div>
 
         <!-- Create Dialog -->
@@ -54,23 +39,14 @@
             </template>
             <template #body-content>
                 <div class="space-y-4">
-                    <FormControl
-                        v-model="createTitle"
-                        :label="__('Title')"
-                        type="text"
-                        :placeholder="createIsGroup ? __('Enter group name') : __('Enter page title')"
-                        autofocus
-                    />
+                    <FormControl v-model="createTitle" :label="__('Title')" type="text"
+                        :placeholder="createIsGroup ? __('Enter group name') : __('Enter page title')" autofocus />
                 </div>
             </template>
             <template #actions="{ close }">
                 <div class="flex justify-end gap-2">
                     <Button variant="outline" @click="close">{{ __('Cancel') }}</Button>
-                    <Button 
-                        variant="solid" 
-                        :loading="wikiDocuments.insert.loading"
-                        @click="createDocument(close)"
-                    >
+                    <Button variant="solid" :loading="wikiDocuments.insert.loading" @click="createDocument(close)">
                         {{ __('Create') }}
                     </Button>
                 </div>
@@ -87,17 +63,17 @@
             <template #body-content>
                 <div class="space-y-4">
                     <p class="text-ink-gray-7">
-                        {{ __('Are you sure you want to delete this') }} 
+                        {{ __('Are you sure you want to delete this') }}
                         {{ deleteNode?.is_group ? __('group') : __('page') }}?
                     </p>
-                    <div v-if="deleteNode?.is_group && deleteChildCount > 0" 
+                    <div v-if="deleteNode?.is_group && deleteChildCount > 0"
                         class="bg-surface-orange-1 border border-outline-orange-2 rounded-lg p-4">
                         <div class="flex items-start gap-3">
                             <LucideAlertTriangle class="size-5 text-ink-orange-4 flex-shrink-0 mt-0.5" />
                             <div>
                                 <p class="font-medium text-ink-orange-4">{{ __('Warning') }}</p>
                                 <p class="text-sm text-ink-orange-3 mt-1">
-                                    {{ __('This group contains') }} {{ deleteChildCount }} 
+                                    {{ __('This group contains') }} {{ deleteChildCount }}
                                     {{ deleteChildCount === 1 ? __('child document') : __('child documents') }}
                                     {{ __('that will also be deleted.') }}
                                 </p>
@@ -109,12 +85,8 @@
             <template #actions="{ close }">
                 <div class="flex justify-end gap-2">
                     <Button variant="outline" @click="close">{{ __('Cancel') }}</Button>
-                    <Button 
-                        variant="solid" 
-                        theme="red"
-                        :loading="deleteDocResource?.deleteWithChildren?.loading"
-                        @click="deleteDocument(close)"
-                    >
+                    <Button variant="solid" theme="red" :loading="deleteDocResource?.deleteWithChildren?.loading"
+                        @click="deleteDocument(close)">
                         {{ __('Delete') }}
                     </Button>
                 </div>
@@ -146,6 +118,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    selectedPageId: {
+        type: String,
+        default: null,
+    },
 });
 
 const emit = defineEmits(['refresh']);
@@ -168,9 +144,13 @@ const wikiDocuments = createListResource({
     doctype: 'Wiki Document',
     fields: ['name', 'title', 'is_group', 'route', 'is_published', 'parent_wiki_document'],
     insert: {
-        onSuccess() {
+        onSuccess(doc) {
             toast.success(createIsGroup.value ? __('Group created') : __('Page created'));
             emit('refresh');
+            // Navigate to the newly created page (not for groups)
+            if (!createIsGroup.value && doc.name) {
+                router.push({ name: 'SpacePage', params: { spaceId: props.spaceId, pageId: doc.name } });
+            }
         },
         onError(error) {
             toast.error(error.messages?.[0] || __('Error creating document'));
@@ -196,7 +176,7 @@ function handleTreeUpdate(payload) {
         emit('refresh');
         return;
     }
-    
+
     if (payload.type === 'added' || payload.type === 'moved') {
         const siblingNames = payload.siblings.map(s => s.name);
         reorderResource.submit({
@@ -218,7 +198,7 @@ function openCreateDialog(parentName, isGroup) {
 async function openDeleteDialog(node) {
     deleteNode.value = node;
     deleteChildCount.value = 0;
-    
+
     // Create a document resource for this specific node
     deleteDocResource.value = createDocumentResource({
         doctype: 'Wiki Document',
@@ -228,7 +208,7 @@ async function openDeleteDialog(node) {
             deleteWithChildren: 'delete_with_children',
         },
     });
-    
+
     if (node.is_group) {
         try {
             const result = await deleteDocResource.value.getChildrenCount.submit();
@@ -237,7 +217,7 @@ async function openDeleteDialog(node) {
             deleteChildCount.value = node.children?.length || 0;
         }
     }
-    
+
     showDeleteDialog.value = true;
 }
 
@@ -253,7 +233,7 @@ async function createDocument(close) {
         is_group: createIsGroup.value ? 1 : 0,
         is_published: 0,
     });
-    
+
     close();
 }
 
