@@ -3,7 +3,7 @@
         <Sidebar />
         <div class="w-full">
             <Navbar />
-			<div class="p-4">
+			<div>
 				<slot></slot>
 			</div>
         </div>

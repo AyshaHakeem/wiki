@@ -72,7 +72,7 @@
                 </div>
 
                 <!-- Children (nested draggable for groups) -->
-                <div v-if="element.is_group && isExpanded(element.name)">
+                <div v-if="element.is_group" v-show="isExpanded(element.name)">
                     <NestedDraggable
                         :items="element.children || []"
                         :level="level + 1"
@@ -208,21 +208,18 @@ function getDropdownOptions(element) {
 
     // Add child options for groups
     if (element.is_group) {
-        options.push({
-            group: __('Add'),
-            items: [
+        options.push(...[
                 {
-                    label: __('Page'),
+                    label: __('Add Page'),
                     icon: 'file-plus',
                     onClick: () => emit('create', element.name, false),
                 },
                 {
-                    label: __('Group'),
+                    label: __('Add Group'),
                     icon: 'folder-plus',
                     onClick: () => emit('create', element.name, true),
                 },
-            ],
-        });
+            ]);
     }
 
     // Publish/Unpublish option for non-groups (pages)
