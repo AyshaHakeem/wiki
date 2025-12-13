@@ -1,8 +1,8 @@
 <template>
-    <div class="p-6 h-full overflow-auto">
-        <div v-if="wikiDoc.doc">
-            <!-- Page Header -->
-            <div class="flex items-center justify-between mb-6">
+    <div class="h-full flex flex-col">
+        <div v-if="wikiDoc.doc" class="h-full flex flex-col">
+            <!-- Page Header (Sticky) -->
+            <div class="flex items-center justify-between p-6 pb-4 bg-surface-white shrink-0">
                 <!-- Title with Badge -->
                 <div class="flex items-center gap-2">
                     <h1 class="text-2xl font-semibold text-ink-gray-9">{{ wikiDoc.doc.title }}</h1>
@@ -49,9 +49,12 @@
                 </div>
             </div>
 
-            <MilkdownProvider v-if="editorKey" :key="editorKey">
-                <WikiEditor ref="editorRef" :content="wikiDoc.doc.content" :saving="wikiDoc.setValue.loading" @save="saveContent" />
-            </MilkdownProvider>
+            <!-- Editor Content (Scrollable) -->
+            <div class="flex-1 overflow-auto px-6 pb-6">
+                <MilkdownProvider v-if="editorKey" :key="editorKey">
+                    <WikiEditor ref="editorRef" :content="wikiDoc.doc.content" :saving="wikiDoc.setValue.loading" @save="saveContent" />
+                </MilkdownProvider>
+            </div>
         </div>
     </div>
 </template>

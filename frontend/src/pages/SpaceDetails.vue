@@ -1,5 +1,5 @@
 <template>
-    <div class="flex h-[calc(100vh-4rem)]">
+    <div class="flex h-full">
         <!-- Left Sidebar -->
         <aside
             ref="sidebarRef"
