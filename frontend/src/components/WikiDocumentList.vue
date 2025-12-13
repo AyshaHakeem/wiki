@@ -98,6 +98,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useStorage } from '@vueuse/core';
 import { createListResource, createDocumentResource, createResource, toast } from 'frappe-ui';
 import NestedDraggable from './NestedDraggable.vue';
 import LucideFolderPlus from '~icons/lucide/folder-plus';
@@ -127,6 +128,9 @@ const props = defineProps({
 const emit = defineEmits(['refresh']);
 const router = useRouter();
 
+// Shared expanded state with NestedDraggable
+const expandedNodes = useStorage('wiki-tree-expanded-nodes', {});
+
 // Create Dialog State
 const showCreateDialog = ref(false);
 const createTitle = ref('');
@@ -146,6 +150,10 @@ const wikiDocuments = createListResource({
     insert: {
         onSuccess(doc) {
             toast.success(createIsGroup.value ? __('Group created') : __('Page created'));
+            // Expand the parent group so the new document is visible
+            if (createParent.value) {
+                expandedNodes.value[createParent.value] = true;
+            }
             emit('refresh');
             // Navigate to the newly created page (not for groups)
             if (!createIsGroup.value && doc.name) {

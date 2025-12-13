@@ -2,6 +2,7 @@
     <div class="flex h-[calc(100vh-4rem)]">
         <!-- Left Sidebar -->
         <aside
+            ref="sidebarRef"
             class="border-r border-outline-gray-2 flex flex-col bg-surface-gray-1 relative flex-shrink-0"
             :style="{ width: `${sidebarWidth}px` }"
         >
@@ -41,8 +42,8 @@
 
             <!-- Resize Handle -->
             <div
-                class="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-ink-blue-3 transition-colors z-10"
-                :class="{ 'bg-ink-blue-3': isResizing }"
+                class="absolute top-0 right-0 w-1 h-full cursor-col-resize z-10"
+                :class="sidebarResizing ? 'bg-surface-gray-4' : 'hover:bg-surface-gray-4'"
                 @mousedown="startResize"
             />
         </aside>
@@ -78,12 +79,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { useStorage } from '@vueuse/core';
 import { createDocumentResource, createResource, Button, Dialog } from 'frappe-ui';
 import WikiDocumentList from '../components/WikiDocumentList.vue';
 import LucideSettings from '~icons/lucide/settings';
+import { useSidebarResize } from '../composables/useSidebarResize';
 
 const props = defineProps({
     spaceId: {
@@ -97,40 +98,9 @@ const route = useRoute();
 // Settings dialog state
 const showSettingsDialog = ref(false);
 
-// Sidebar resize state
-const MIN_WIDTH = 200;
-const MAX_WIDTH = 600;
-const DEFAULT_WIDTH = 280;
-
-const sidebarWidth = useStorage('wiki-sidebar-width', DEFAULT_WIDTH);
-const isResizing = ref(false);
-
-function startResize() {
-    isResizing.value = true;
-    document.addEventListener('mousemove', handleResize);
-    document.addEventListener('mouseup', stopResize);
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-}
-
-function handleResize(e) {
-    if (!isResizing.value) return;
-    const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, e.clientX));
-    sidebarWidth.value = newWidth;
-}
-
-function stopResize() {
-    isResizing.value = false;
-    document.removeEventListener('mousemove', handleResize);
-    document.removeEventListener('mouseup', stopResize);
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-}
-
-onUnmounted(() => {
-    document.removeEventListener('mousemove', handleResize);
-    document.removeEventListener('mouseup', stopResize);
-});
+// Sidebar resize
+const sidebarRef = ref(null);
+const { sidebarWidth, sidebarResizing, startResize } = useSidebarResize(sidebarRef);
 
 // Compute current page from route params
 const currentPageId = computed(() => route.params.pageId || null);

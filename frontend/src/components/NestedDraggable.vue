@@ -17,7 +17,7 @@
                 <!-- Node Row -->
                 <div
                     class="flex items-center justify-between pr-2 py-1.5 hover:bg-surface-gray-2 group border-b border-outline-gray-1 cursor-pointer"
-                    :class="{ 'bg-surface-blue-1': !element.is_group && element.name === selectedPageId }"
+                    :class="{ 'bg-surface-gray-3': !element.is_group && element.name === selectedPageId }"
                     :style="{ paddingLeft: `${level * 12 + 8}px` }"
                     @click="handleRowClick(element)"
                 >
