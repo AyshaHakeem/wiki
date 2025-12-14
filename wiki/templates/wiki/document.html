@@ -6,35 +6,40 @@
 {% endblock %}
 
 {% block body %}
-<article x-data="wikiDocument()" class="max-w-4xl mx-auto">
-    <!-- Page Header -->
-    <header class="mb-8 pb-4 border-b border-[var(--outline-gray-1)]">
-        <h1 class="text-3xl font-bold text-[var(--ink-gray-9)] mb-4">{{ doc.title }}</h1>
+<div class="flex gap-8" x-data="{ ...wikiDocument(), ...tocScrollSpy() }">
+    <!-- Main Content -->
+    <article class="flex-1 max-w-4xl">
+        <!-- Page Header -->
+        <header class="mb-8 pb-4 border-b border-[var(--outline-gray-1)]">
+            <h1 class="text-3xl font-bold text-[var(--ink-gray-9)] mb-4">{{ doc.title }}</h1>
 
-        <!-- Action Buttons -->
-        <div class="flex items-center gap-3">
-            <!-- Copy Markdown Button -->
-            <button @click="copyMarkdown()"
-                    class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[var(--ink-gray-5)] hover:text-[var(--ink-gray-9)] hover:bg-[var(--surface-gray-2)] rounded-md transition-colors duration-200 cursor-pointer">
-                <template x-if="!copied">
-                    {{ render_icon("clipboard") }}
-                </template>
-                <template x-if="copied">
-                    {{ render_icon("check", "text-[var(--ink-green-2)]") }}
-                </template>
-                <span x-text="copied ? 'Copied!' : 'Copy Markdown'"></span>
-            </button>
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-3">
+                <!-- Copy Markdown Button -->
+                <button @click="copyMarkdown()"
+                        class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[var(--ink-gray-5)] hover:text-[var(--ink-gray-9)] hover:bg-[var(--surface-gray-2)] rounded-md transition-colors duration-200 cursor-pointer">
+                    <template x-if="!copied">
+                        {{ render_icon("clipboard") }}
+                    </template>
+                    <template x-if="copied">
+                        {{ render_icon("check", "text-[var(--ink-green-2)]") }}
+                    </template>
+                    <span x-text="copied ? 'Copied!' : 'Copy Markdown'"></span>
+                </button>
 
-            <!-- Edit Page Link -->
-            {{ ghost_button(text="Edit Page", icon="edit", href="/edit-wiki-page/" ~ doc.name) }}
+                <!-- Edit Page Link -->
+                {{ ghost_button(text="Edit Page", icon="edit", href="/edit-wiki-page/" ~ doc.name) }}
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="prose prose-lg max-w-none" id="wiki-content">
+            {{ rendered_content }}
         </div>
-    </header>
+    </article>
 
-    <!-- Page Content -->
-    <div class="prose prose-lg max-w-none">
-        {{ rendered_content }}
-    </div>
-</article>
+    {% include "templates/wiki/includes/toc.html" %}
+</div>
 
 <script>
     function wikiDocument() {

@@ -4,7 +4,7 @@
             {% for node in nodes %}
                 {% set is_current = (not node.is_group and node.route == current_route) %}
                 <li class="wiki-item {{ 'is-group' if node.is_group else 'is-page' }} {{ 'current-page' if is_current else '' }}">
-                    <div class="wiki-item-content flex items-center py-2 px-4 transition-colors duration-200 {{ 'pl-8' if level == 1 else 'pl-12' if level == 2 else 'pl-16' if level >= 3 else 'pl-4' }} {{ 'bg-[var(--surface-blue-2)] border-r-4 border-[var(--ink-blue-2)] text-[var(--ink-blue-3)]' if is_current else 'hover:bg-[var(--surface-gray-2)] cursor-pointer' }}"
+                    <div class="wiki-item-content flex items-center py-2 px-4 transition-colors duration-200 {{ 'pl-8' if level == 1 else 'pl-12' if level == 2 else 'pl-16' if level >= 3 else 'pl-4' }} {{ 'bg-[var(--surface-gray-2)] border-r-4 border-[var(--ink-gray-7)] text-[var(--ink-gray-9)]' if is_current else 'hover:bg-[var(--surface-gray-2)] cursor-pointer' }}"
                          {% if node.is_group %}@click="toggleNode('{{ node.name }}')"{% endif %}
                          data-route="{{ node.route }}"
                          data-node-id="{{ node.name }}"
@@ -30,8 +30,8 @@
                                 <span class="wiki-title text-sm font-medium">{{ node.title }}</span>
                             </div>
                         {% else %}
-                            <a href="/{{ node.route }}" class="wiki-link flex items-center no-underline flex-1 transition-colors duration-200 {{ 'text-[var(--ink-blue-3)] font-semibold' if is_current else 'text-[var(--ink-gray-7)] hover:text-[var(--ink-blue-2)]' }}">
-                                <svg class="w-4 h-4 mr-2 {{ 'text-[var(--ink-blue-2)]' if is_current else 'text-[var(--ink-gray-4)]' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <a href="/{{ node.route }}" class="wiki-link flex items-center no-underline flex-1 transition-colors duration-200 {{ 'text-[var(--ink-gray-9)] font-semibold' if is_current else 'text-[var(--ink-gray-7)] hover:text-[var(--ink-gray-9)]' }}">
+                                <svg class="w-4 h-4 mr-2 {{ 'text-[var(--ink-gray-7)]' if is_current else 'text-[var(--ink-gray-4)]' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
                                 <span class="wiki-title text-sm {{ 'font-semibold' if is_current else 'font-normal' }}">{{ node.title }}</span>

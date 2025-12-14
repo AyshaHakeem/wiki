@@ -1,0 +1,105 @@
+<!-- Table of Contents (Right Sidebar) -->
+<aside class="hidden xl:block w-64 shrink-0">
+    <nav class="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto no-scrollbar">
+        <template x-if="headings.length > 0">
+            <div>
+                <h3 class="text-sm font-semibold text-[var(--ink-gray-9)] mb-3">On this page</h3>
+                <ul class="space-y-2">
+                    <template x-for="heading in headings" :key="heading.id">
+                        <li>
+                            <a :href="'#' + heading.id"
+                               @click.prevent="scrollToHeading(heading.id)"
+                               :class="activeId === heading.id
+                                   ? 'text-[var(--ink-gray-9)] font-medium'
+                                   : 'text-[var(--ink-gray-5)] hover:text-[var(--ink-gray-9)]'"
+                               :style="`padding-left: ${(heading.level - 2) * 0.75}rem`"
+                               class="block text-sm transition-colors duration-200"
+                               x-text="heading.text">
+                            </a>
+                        </li>
+                    </template>
+                </ul>
+            </div>
+        </template>
+    </nav>
+</aside>
+
+<script>
+    function tocScrollSpy(contentId = 'wiki-content') {
+        return {
+            headings: [],
+            activeId: '',
+            observer: null,
+
+            init() {
+                this.extractHeadings(contentId);
+                this.setupScrollSpy();
+            },
+
+            extractHeadings(contentId) {
+                const content = document.getElementById(contentId);
+                if (!content) return;
+
+                const headingElements = content.querySelectorAll('h2, h3');
+                this.headings = Array.from(headingElements).map((heading, index) => {
+                    // Ensure heading has an ID for linking
+                    if (!heading.id) {
+                        heading.id = `heading-${index}`;
+                    }
+                    return {
+                        id: heading.id,
+                        text: heading.textContent.trim(),
+                        level: parseInt(heading.tagName.charAt(1))
+                    };
+                });
+
+                // Set initial active heading
+                if (this.headings.length > 0) {
+                    this.activeId = this.headings[0].id;
+                }
+            },
+
+            setupScrollSpy() {
+                if (this.headings.length === 0) return;
+
+                const options = {
+                    root: null,
+                    rootMargin: '-80px 0px -70% 0px',
+                    threshold: 0
+                };
+
+                this.observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            this.activeId = entry.target.id;
+                        }
+                    });
+                }, options);
+
+                this.headings.forEach(heading => {
+                    const element = document.getElementById(heading.id);
+                    if (element) {
+                        this.observer.observe(element);
+                    }
+                });
+            },
+
+            scrollToHeading(id) {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Update active immediately for better UX
+                    this.activeId = id;
+                    // Update URL hash without jumping
+                    history.pushState(null, null, `#${id}`);
+                }
+            },
+
+            destroy() {
+                if (this.observer) {
+                    this.observer.disconnect();
+                }
+            }
+        }
+    }
+</script>
