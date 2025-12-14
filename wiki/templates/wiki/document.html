@@ -6,9 +6,9 @@
 {% endblock %}
 
 {% block body %}
-<div class="flex gap-8" x-data="{ ...wikiDocument(), ...tocScrollSpy() }">
+<div x-data="{ ...wikiDocument(), ...tocScrollSpy() }">
     <!-- Main Content -->
-    <article class="flex-1 max-w-4xl">
+    <article class="max-w-4xl mx-auto xl:mr-72">
         <!-- Page Header -->
         <header class="mb-8 pb-4 border-b border-[var(--outline-gray-1)]">
             <h1 class="text-3xl font-bold text-[var(--ink-gray-9)] mb-4">{{ doc.title }}</h1>
