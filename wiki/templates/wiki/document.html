@@ -28,7 +28,7 @@
                 </button>
 
                 <!-- Edit Page Link -->
-                {{ ghost_button(text="Edit Page", icon="edit", href="/edit-wiki-page/" ~ doc.name) }}
+                {{ ghost_button(text="Edit Page", icon="edit", href=doc.get_edit_link()) }}
             </div>
         </header>
 

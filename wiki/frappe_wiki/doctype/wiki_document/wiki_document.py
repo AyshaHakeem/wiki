@@ -79,6 +79,11 @@ class WikiDocument(NestedSet):
 
 			self.route = "/".join(route_parts)
 
+	def get_edit_link(self) -> str:
+		root_group = self.get_ancestors()[-1]
+		space_name = frappe.get_cached_value("Wiki Space", {"root_group": root_group}, "name")
+		return f"/frontend/spaces/{space_name}/page/{self.name}"
+
 	@frappe.whitelist()
 	def get_breadcrumbs(self) -> dict:
 		"""Get the breadcrumb trail for this Wiki Document including space info."""
