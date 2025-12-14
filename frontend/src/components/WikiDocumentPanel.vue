@@ -27,6 +27,7 @@
                         {{ wikiDoc.doc.is_published ? __('Unpublish') : __('Publish') }}
                     </Button>
                     <Button
+                        v-if="wikiDoc.doc.is_published"
                         variant="outline"
                         :link="`http://wiki.localhost:8000/${wikiDoc.doc.route}`"
                         target="_blank"
