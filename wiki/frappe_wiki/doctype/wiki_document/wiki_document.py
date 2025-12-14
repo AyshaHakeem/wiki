@@ -173,6 +173,9 @@ class WikiDocumentRenderer(BaseRenderer):
 		descendants = get_descendants_of("Wiki Document", wiki_space_root)
 		nested_tree = build_nested_wiki_tree(descendants)
 
+		# Get adjacent documents for prev/next navigation
+		adjacent_docs = get_adjacent_documents(nested_tree, doc.route)
+
 		content_html = frappe.utils.md_to_html(doc.content)
 		html = frappe.render_template(
 			"templates/wiki/document.html",
@@ -182,6 +185,8 @@ class WikiDocumentRenderer(BaseRenderer):
 				"rendered_content": content_html,
 				"raw_markdown": doc.content or "",
 				"nested_tree": nested_tree,
+				"prev_doc": adjacent_docs["prev"],
+				"next_doc": adjacent_docs["next"],
 			},
 		)
 		return self.build_response(html)
@@ -248,3 +253,46 @@ def get_breadcrumbs(name: str) -> dict:
 	"""Get the breadcrumb trail for a Wiki Document including space info."""
 	doc = frappe.get_cached_doc("Wiki Document", name)
 	return doc.get_breadcrumbs()
+
+
+def get_adjacent_documents(nested_tree: list, current_route: str) -> dict:
+	"""
+	Get the previous and next documents based on the flattened tree order.
+	Only returns non-group documents (actual pages).
+
+	Args:
+		nested_tree: The nested tree structure from build_nested_wiki_tree
+		current_route: The route of the current document
+
+	Returns:
+		dict with 'prev' and 'next' keys, each containing {title, route} or None
+	"""
+
+	def flatten_tree(nodes: list) -> list:
+		"""Flatten the nested tree into a list of non-group documents in order."""
+		result = []
+		for node in nodes:
+			if not node.get("is_group"):
+				result.append({"title": node["title"], "route": node["route"]})
+			if node.get("children"):
+				result.extend(flatten_tree(node["children"]))
+		return result
+
+	flat_list = flatten_tree(nested_tree)
+
+	# Find current document index
+	current_index = None
+	for i, doc in enumerate(flat_list):
+		if doc["route"] == current_route:
+			current_index = i
+			break
+
+	result = {"prev": None, "next": None}
+
+	if current_index is not None:
+		if current_index > 0:
+			result["prev"] = flat_list[current_index - 1]
+		if current_index < len(flat_list) - 1:
+			result["next"] = flat_list[current_index + 1]
+
+	return result
