@@ -70,7 +70,7 @@ export_python_type_annotations = True
 # before_install = "wiki.install.before_install"
 after_install = "wiki.install.after_install"
 
-after_migrate = ["wiki.wiki.doctype.wiki_page.search.build_index_in_background"]
+# after_migrate = ["wiki.wiki.doctype.wiki_page.search.build_index_in_background"]
 
 # Desk Notifications
 # ------------------
@@ -113,11 +113,11 @@ after_migrate = ["wiki.wiki.doctype.wiki_page.search.build_index_in_background"]
 # Scheduled Tasks
 # ---------------
 
-scheduler_events = {
-	"cron": {
-		"*/15 * * * *": ["wiki.wiki.doctype.wiki_page.search.build_index_in_background"],
-	},
-}
+# scheduler_events = {
+# 	"cron": {
+# 		"*/15 * * * *": ["wiki.wiki.doctype.wiki_page.search.build_index_in_background"],
+# 	},
+# }
 
 # scheduler_events = {
 # 	"all": [

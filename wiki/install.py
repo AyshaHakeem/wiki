@@ -6,24 +6,14 @@ import frappe
 
 
 def after_install():
-	# create the wiki homepage
-	page = frappe.new_doc("Wiki Page")
-	page.title = "Home"
-	page.route = "wiki/home"
-	page.content = "Welcome to the homepage of your wiki!"
-	page.published = True
-	page.insert()
-
 	# create the wiki space
 	space = frappe.new_doc("Wiki Space")
+	space.space_name = "Wiki"
 	space.route = "wiki"
 	space.insert()
 
-	# create the wiki sidebar
-	sidebar = frappe.new_doc("Wiki Group Item")
-	sidebar.wiki_page = page.name
-	sidebar.parent_label = "Wiki"
-	sidebar.parent = space.name
-	sidebar.parenttype = "Wiki Space"
-	sidebar.parentfield = "wiki_sidebars"
-	sidebar.insert()
+	page = frappe.new_doc("Wiki Document Page")
+	page.parent_wiki_document = space.root_group
+	page.title = "Welcome to Frappe Wiki"
+	page.content = "# Welcome to Frappe Wiki!"
+	page.insert()
