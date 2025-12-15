@@ -28,6 +28,7 @@ class WikiDocument(NestedSet):
 
 	def validate(self):
 		self.set_route()
+		self.remove_leading_slash_from_route()
 		self.set_boilerplate_content()
 
 	def set_boilerplate_content(self):
@@ -78,6 +79,10 @@ class WikiDocument(NestedSet):
 			route_parts.append(slug)
 
 			self.route = "/".join(route_parts)
+
+	def remove_leading_slash_from_route(self):
+		if self.route and self.route.startswith("/"):
+			self.route = self.route[1 : len(self.route)]
 
 	def get_edit_link(self) -> str:
 		root_group = self.get_ancestors()[-1]
