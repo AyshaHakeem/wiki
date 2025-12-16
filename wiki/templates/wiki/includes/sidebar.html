@@ -189,6 +189,11 @@
                     Alpine.store('toc').refresh();
                 }
 
+                // Re-apply syntax highlighting to code blocks
+                if (typeof hljs !== 'undefined') {
+                    hljs.highlightAll();
+                }
+
                 // Scroll to top
                 window.scrollTo(0, 0);
             },
