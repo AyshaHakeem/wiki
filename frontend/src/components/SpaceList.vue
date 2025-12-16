@@ -137,7 +137,7 @@ const spaces = createListResource({
   doctype: "Wiki Space",
   fields: ["name", "space_name", "route", "root_group"],
   orderBy: "creation desc",
-  pageLength: 20,
+  limit: 100,
   auto: true,
   insert: {
     onSuccess: (doc) => {
