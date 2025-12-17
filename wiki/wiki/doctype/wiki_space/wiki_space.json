@@ -115,7 +115,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-06 15:52:31.172451",
+ "modified": "2025-12-17 10:39:27.316458",
  "modified_by": "Administrator",
  "module": "Wiki",
  "name": "Wiki Space",
@@ -143,6 +143,19 @@
    "read": 1,
    "report": 1,
    "role": "Wiki Approver",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Wiki Manager",
+   "select": 1,
    "share": 1,
    "write": 1
   }

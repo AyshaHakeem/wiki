@@ -25,6 +25,7 @@ class WikiDocument(NestedSet):
 		parent_wiki_document: DF.Link | None
 		rgt: DF.Int
 		route: DF.Data | None
+		sort_order: DF.Int
 		title: DF.Data
 	# end: auto-generated types
 
