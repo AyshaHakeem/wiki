@@ -162,6 +162,23 @@ class WikiDocument(NestedSet):
 			},
 		}
 
+	def get_web_context(self) -> dict:
+		"""Get all context needed to render this Wiki Document."""
+		wiki_space = self.get_wiki_space()
+		wiki_space_doc = frappe.get_cached_doc("Wiki Space", wiki_space.name) if wiki_space else None
+		nested_tree, adjacent_docs = self.get_tree_and_navigation()
+		content_html = render_markdown(self.content)
+
+		return {
+			"doc": self,
+			"wiki_space": wiki_space_doc,
+			"rendered_content": content_html,
+			"raw_markdown": self.content or "",
+			"nested_tree": nested_tree,
+			"prev_doc": adjacent_docs["prev"],
+			"next_doc": adjacent_docs["next"],
+		}
+
 	@frappe.whitelist()
 	def get_children_count(self) -> int:
 		"""Get the count of children for this Wiki Document."""
@@ -209,25 +226,8 @@ class WikiDocumentRenderer(BaseRenderer):
 
 	def render(self):
 		doc = frappe.get_cached_doc("Wiki Document", self.wiki_doc_name)
-
-		wiki_space = doc.get_wiki_space()
-		wiki_space_doc = frappe.get_cached_doc("Wiki Space", wiki_space.name) if wiki_space else None
-
-		nested_tree, adjacent_docs = doc.get_tree_and_navigation()
-
-		content_html = render_markdown(doc.content)
-		html = frappe.render_template(
-			"templates/wiki/document.html",
-			{
-				"doc": doc,
-				"wiki_space": wiki_space_doc,
-				"rendered_content": content_html,
-				"raw_markdown": doc.content or "",
-				"nested_tree": nested_tree,
-				"prev_doc": adjacent_docs["prev"],
-				"next_doc": adjacent_docs["next"],
-			},
-		)
+		context = doc.get_web_context()
+		html = frappe.render_template("templates/wiki/document.html", context)
 		return self.build_response(html)
 
 
