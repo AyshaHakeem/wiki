@@ -73,9 +73,23 @@
                 </h3>
             </template>
             <template #body-content>
-                <div class="flex flex-col items-center justify-center py-8">
-                    <LucideSettings class="size-12 text-ink-gray-4 mb-4" />
-                    <p class="text-sm text-ink-gray-5">{{ __('Space settings coming soon') }}</p>
+                <div class="space-y-4 py-2">
+                    <!-- Feedback Collection Toggle -->
+                    <div class="flex items-center justify-between p-3 rounded-lg border border-outline-gray-2 bg-surface-gray-1">
+                        <div class="flex-1 mr-4">
+                            <p class="text-sm font-medium text-ink-gray-9">
+                                {{ __('Enable Feedback Collection') }}
+                            </p>
+                            <p class="text-xs text-ink-gray-5 mt-0.5">
+                                {{ __('Show a feedback widget on wiki pages to collect user reactions') }}
+                            </p>
+                        </div>
+                        <Switch
+                            v-model="enableFeedbackCollection"
+                            :disabled="updatingFeedbackSetting"
+                            @update:modelValue="updateFeedbackSetting"
+                        />
+                    </div>
                 </div>
             </template>
             <template #actions="{ close }">
@@ -88,9 +102,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { createDocumentResource, createResource, Button, Dialog } from 'frappe-ui';
+import { createDocumentResource, createResource, Button, Dialog, Switch } from 'frappe-ui';
 import WikiDocumentList from '../components/WikiDocumentList.vue';
 import LucideSettings from '~icons/lucide/settings';
 import { useSidebarResize } from '../composables/useSidebarResize';
@@ -107,6 +121,10 @@ const route = useRoute();
 // Settings dialog state
 const showSettingsDialog = ref(false);
 
+// Feedback collection setting
+const enableFeedbackCollection = ref(false);
+const updatingFeedbackSetting = ref(false);
+
 // Sidebar resize
 const sidebarRef = ref(null);
 const { sidebarWidth, sidebarResizing, startResize } = useSidebarResize(sidebarRef);
@@ -119,6 +137,29 @@ const space = createDocumentResource({
     name: props.spaceId,
     auto: true
 });
+
+// Sync enableFeedbackCollection with space doc when it loads
+watch(() => space.doc, (doc) => {
+    if (doc) {
+        enableFeedbackCollection.value = Boolean(doc.enable_feedback_collection);
+    }
+}, { immediate: true });
+
+// Update feedback setting
+async function updateFeedbackSetting(value) {
+    updatingFeedbackSetting.value = true;
+    try {
+        await space.setValue.submit({
+            enable_feedback_collection: value ? 1 : 0
+        });
+    } catch (error) {
+        console.error('Failed to update feedback setting:', error);
+        // Revert on error
+        enableFeedbackCollection.value = !value;
+    } finally {
+        updatingFeedbackSetting.value = false;
+    }
+}
 
 const wikiTree = createResource({
     url: '/api/method/wiki.api.get_wiki_tree',
