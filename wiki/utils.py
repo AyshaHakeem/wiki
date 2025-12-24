@@ -1,6 +1,13 @@
 import difflib
 
 import frappe
+from frappe.core.doctype.file.utils import get_content_hash
+
+
+def get_tailwindcss_hash():
+	tailwindcss_path = frappe.get_app_path("wiki", "wiki/css/tailwind.css")
+	content = open(tailwindcss_path).read()
+	return get_content_hash(content)
 
 
 def check_app_permission():
@@ -21,11 +28,11 @@ def apply_markdown_diff(original_md, modified_md):
 	Compares two markdown texts, finds the differences, and applies them to the original text.
 
 	Args:
-				original_md (str): The original markdown text.
-				modified_md (str): The modified markdown text.
+	                        original_md (str): The original markdown text.
+	                        modified_md (str): The modified markdown text.
 
 	Returns:
-				tuple: A tuple containing the updated markdown text and a list of changes with their positions.
+	                        tuple: A tuple containing the updated markdown text and a list of changes with their positions.
 	"""
 	original_lines = original_md.split("\n")
 	modified_lines = modified_md.split("\n")
@@ -82,11 +89,11 @@ def apply_changes(original_md, changes):
 	Applies a list of changes to the original markdown text.
 
 	Args:
-				original_md (str): The original markdown text.
-				changes (list): A list of changes as returned by apply_markdown_diff.
+	                        original_md (str): The original markdown text.
+	                        changes (list): A list of changes as returned by apply_markdown_diff.
 
 	Returns:
-				str: The modified markdown text after applying all changes.
+	                        str: The modified markdown text after applying all changes.
 	"""
 	lines = original_md.split("\n")
 
@@ -117,11 +124,11 @@ def highlight_changes(original_md, changes):
 	Highlights changes in the original markdown text using <ins> and <del> tags.
 
 	Args:
-				original_md (str): The original markdown text.
-				changes (list): A list of changes as returned by apply_markdown_diff.
+	                        original_md (str): The original markdown text.
+	                        changes (list): A list of changes as returned by apply_markdown_diff.
 
 	Returns:
-				str: The modified markdown text with changes highlighted.
+	                        str: The modified markdown text with changes highlighted.
 	"""
 	lines = original_md.split("\n")
 
