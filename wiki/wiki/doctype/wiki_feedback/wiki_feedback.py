@@ -30,7 +30,7 @@ class WikiFeedback(Document):
 
 def get_feedback_limit():
 	wiki_settings = frappe.get_single("Wiki Settings")
-	return wiki_settings.feedback_submission_limit or 3
+	return wiki_settings.feedback_submission_limit or 20
 
 
 @frappe.whitelist(allow_guest=True)
