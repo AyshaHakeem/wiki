@@ -64,7 +64,7 @@ def submit_feedback(
 
 	# New API: Wiki Document with type
 	if wiki_document and type:
-		doc = frappe.get_doc(
+		frappe.get_doc(
 			{
 				"doctype": "Wiki Feedback",
 				"wiki_document": wiki_document,
@@ -72,13 +72,12 @@ def submit_feedback(
 				"feedback": feedback,
 				"email_id": email,
 			}
-		)
-		doc.insert()
-		return {"success": True}
+		).insert()
+		return
 
 	# Legacy API: Wiki Page with rating
 	if name and rating is not None:
-		doc = frappe.get_doc(
+		frappe.get_doc(
 			{
 				"doctype": "Wiki Feedback",
 				"wiki_page": name,
@@ -86,8 +85,7 @@ def submit_feedback(
 				"feedback": feedback,
 				"email_id": email,
 			}
-		)
-		doc.insert()
-		return {"success": True}
+		).insert()
+		return
 
 	frappe.throw("Invalid feedback submission parameters")

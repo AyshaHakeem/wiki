@@ -145,7 +145,7 @@
 
                     const data = await response.json();
 
-                    if (data.message && data.message.success) {
+                    if (response.ok && !data.exc_type) {
                         this.submitted = true;
                     } else if (data.exc_type === 'RateLimitExceededError') {
                         alert('You have submitted too many feedbacks. Please try again later.');
