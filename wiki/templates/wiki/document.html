@@ -84,6 +84,11 @@
             {% endif %}
         </nav>
 
+        <!-- Last Updated -->
+        <div class="mt-8 text-sm text-[var(--ink-gray-5)]">
+            Last updated {{ last_updated }}
+        </div>
+
         <!-- Feedback Widget (Mobile/Tablet only - hidden on xl screens where it shows in TOC sidebar) -->
         {% if wiki_space and wiki_space.enable_feedback_collection %}
         <div class="xl:hidden">

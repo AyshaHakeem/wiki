@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe.utils import pretty_date
 from frappe.utils.nestedset import NestedSet, get_descendants_of
 from frappe.website.page_renderers.base_renderer import BaseRenderer
 
@@ -201,6 +202,7 @@ class WikiDocument(NestedSet):
 			"prev_doc": adjacent_docs["prev"],
 			"next_doc": adjacent_docs["next"],
 			"edit_link": self.get_edit_link(),
+			"last_updated": pretty_date(self.modified),
 		}
 
 	@frappe.whitelist()
