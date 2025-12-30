@@ -12,4 +12,4 @@ wiki.wiki.doctype.wiki_page.patches.update_escaped_code_content
 wiki.wiki.doctype.wiki_page.patches.update_escaped_chars
 wiki.wiki.doctype.wiki_space.patches.wiki_navbar_app_switcher_migration
 wiki.wiki.doctype.wiki_space.patches.v3.migrate_to_new_tree_document_structure
-wiki.wiki.doctype.wiki_space.patches.v3.assign_wiki_user_to_active_users
+# wiki.wiki.doctype.wiki_space.patches.v3.assign_wiki_user_to_active_users
