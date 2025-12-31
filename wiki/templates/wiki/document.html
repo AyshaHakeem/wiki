@@ -8,8 +8,9 @@
 {% block body %}
 <div x-data="wikiPage" x-init="$store.navigation.init()">
     <!-- Main Content -->
-    <article class="max-w-4xl mx-auto xl:mr-72 transition-opacity duration-150"
-             :class="{ 'opacity-50': $store.navigation.loading }">
+    <article class="mx-auto xl:mr-72 transition-all duration-300"
+             :class="{ 'opacity-50': $store.navigation.loading }"
+             :style="$store.sidebar?.isCollapsed ? 'max-width: 72rem;' : 'max-width: 56rem;'">
         <!-- Page Header -->
         <header class="mb-8 pb-4 border-b border-[var(--outline-gray-1)]">
             <h1 id="wiki-page-title" class="text-3xl font-bold text-[var(--ink-gray-9)] mb-4">{{ doc.title }}</h1>

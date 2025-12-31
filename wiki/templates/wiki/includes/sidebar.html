@@ -1,17 +1,9 @@
 {% from "templates/wiki/macros/sidebar_tree.html" import render_wiki_tree %}
 {% from "templates/wiki/macros/buttons.html" import ghost_button_full, icon_button, render_icon %}
 
-<div class="wiki-sidebar hidden xl:flex bg-[var(--surface-gray-1)] border-r border-[var(--outline-gray-1)] fixed left-0 top-0 h-screen flex-col transition-all duration-300 overflow-hidden z-40"
+<div class="wiki-sidebar hidden xl:flex bg-[var(--surface-menu-bar)] border-r border-[var(--outline-gray-1)] h-screen flex-col flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden sticky top-0"
      x-data="wikiSidebar()"
-     :class="isCollapsed ? 'xl:w-0 xl:border-r-0' : 'xl:w-72'"
-     x-cloak
-     x-show="!isCollapsed"
-     x-transition:enter="transition-all duration-300"
-     x-transition:enter-start="w-0 opacity-0"
-     x-transition:enter-end="w-72 opacity-100"
-     x-transition:leave="transition-all duration-300"
-     x-transition:leave-start="w-72 opacity-100"
-     x-transition:leave-end="w-0 opacity-0">
+     :style="isCollapsed ? 'width: 0; border-right-width: 0;' : 'width: 18rem;'">
 
     <!-- Fixed Header with Wiki Space Switcher -->
     <div class="p-4 border-b border-[var(--outline-gray-1)] bg-[var(--surface-white)] flex-shrink-0">
@@ -100,7 +92,7 @@
         <!-- Collapse Button -->
         <button @click="toggleSidebar()"
                 class="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-[var(--ink-gray-5)] hover:text-[var(--ink-gray-9)] hover:bg-[var(--surface-gray-2)] rounded-md transition-colors duration-200 cursor-pointer">
-            {{ render_icon("chevron-left", "mr-2 transition-transform duration-200") }}
+            {{ render_icon("panel-right-open", "mr-2 text-[var(--ink-gray-6)] transition-transform duration-300") }}
             <span>Collapse</span>
         </button>
     </div>
@@ -109,8 +101,8 @@
 <!-- Collapse/Expand Toggle Button (visible when sidebar is collapsed, only on xl screens) -->
 <div x-show="$store.sidebar.isCollapsed"
      x-data
-     class="hidden xl:block fixed left-2 bottom-4 z-50 transition-opacity duration-300">
-    {{ icon_button(icon="chevron-right", click="$store.sidebar.toggle()") }}
+     class="hidden xl:block fixed left-4 bottom-6 z-50 transition-opacity duration-300">
+    {{ icon_button(icon="panel-right-open", click="$store.sidebar.toggle()", icon_classes="w-5 h-5 text-[var(--ink-gray-5)] rotate-180") }}
 </div>
 
 <script>
