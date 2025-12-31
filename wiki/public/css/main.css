@@ -12,7 +12,7 @@
   --tw-prose-body: var(--ink-gray-8);
   --tw-prose-headings: var(--ink-gray-9);
   --tw-prose-lead: var(--ink-gray-6);
-  --tw-prose-links: var(--ink-blue-2);
+  --tw-prose-links: var(--ink-gray-9);
   --tw-prose-bold: var(--ink-gray-9);
   --tw-prose-counters: var(--ink-gray-5);
   --tw-prose-bullets: var(--ink-gray-4);
@@ -25,6 +25,17 @@
   --tw-prose-pre-bg: var(--surface-gray-7);
   --tw-prose-th-borders: var(--outline-gray-2);
   --tw-prose-td-borders: var(--outline-gray-1);
+}
+
+/* Link styling - underline to distinguish gray links */
+.prose a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s ease;
+}
+
+.prose a:hover {
+  color: var(--ink-gray-7);
 }
 
 /* Code block styling */

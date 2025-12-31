@@ -245,7 +245,6 @@ async function saveContent(content) {
 async function saveDirectly(content) {
     try {
         await wikiDoc.setValue.submit({ content });
-        toast.success(__('Page saved'));
     } catch (error) {
         toast.error(error.messages?.[0] || __('Error saving page'));
     }

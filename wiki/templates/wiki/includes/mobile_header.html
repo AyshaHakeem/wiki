@@ -25,8 +25,18 @@
                 </div>
             </div>
 
-            <!-- Right: Search and Theme Toggle -->
-            <div class="flex items-center gap-2">
+            <!-- Right: Navbar items, Search and Theme Toggle -->
+            <div class="flex items-center gap-1">
+                {% for item in navbar_items %}
+                    {% if item.icon %}
+                    <a href="{{ item.url }}"
+                       target="_blank" rel="noopener noreferrer"
+                       title="{{ item.label }}"
+                       class="p-2 text-[var(--ink-gray-5)] hover:text-[var(--ink-gray-9)] hover:bg-[var(--surface-gray-2)] rounded-md transition-colors duration-200">
+                        {{ render_icon(item.icon) }}
+                    </a>
+                    {% endif %}
+                {% endfor %}
                 <button @click="$dispatch('open-search')"
                         class="p-2 text-[var(--ink-gray-5)] hover:text-[var(--ink-gray-9)] hover:bg-[var(--surface-gray-2)] rounded-md transition-colors duration-200">
                     {{ render_icon("search") }}
@@ -125,6 +135,30 @@
         <nav class="py-2 flex-1 overflow-y-auto" @click="handleNavClick($event)">
             {{ render_wiki_tree(nested_tree, current_route=doc.route if doc else '') }}
         </nav>
+
+        {% if navbar_items %}
+        <!-- Navbar Links -->
+        <div class="p-3 border-t border-[var(--outline-gray-1)] bg-[var(--surface-white)]">
+            <div class="flex flex-wrap items-center gap-2">
+                {% for item in navbar_items %}
+                    {% if item.icon %}
+                    <a href="{{ item.url }}"
+                       target="_blank" rel="noopener noreferrer"
+                       title="{{ item.label }}"
+                       class="p-2 text-[var(--ink-gray-5)] hover:text-[var(--ink-gray-9)] hover:bg-[var(--surface-gray-2)] rounded-md transition-colors duration-200">
+                        {{ render_icon(item.icon, "w-5 h-5") }}
+                    </a>
+                    {% else %}
+                    <a href="{{ item.url }}"
+                       target="_blank" rel="noopener noreferrer"
+                       class="px-2 py-1.5 text-sm text-[var(--ink-gray-5)] hover:text-[var(--ink-gray-9)] hover:bg-[var(--surface-gray-2)] rounded-md transition-colors duration-200">
+                        {{ item.label }}
+                    </a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 

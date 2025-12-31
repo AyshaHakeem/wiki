@@ -1,12 +1,61 @@
 # Copyright (c) 2025, Frappe and contributors
 # For license information, please see license.txt
 
+from urllib.parse import urlparse
+
 import frappe
 from frappe.utils import pretty_date
 from frappe.utils.nestedset import NestedSet, get_descendants_of
 from frappe.website.page_renderers.base_renderer import BaseRenderer
 
 from wiki.wiki.markdown import render_markdown
+
+# Mapping of known service domains to icon identifiers
+KNOWN_SERVICE_ICONS = {
+	"github.com": "github",
+	"youtube.com": "youtube",
+	"twitter.com": "twitter",
+	"x.com": "twitter",
+	"linkedin.com": "linkedin",
+	"discord.com": "discord",
+	"discord.gg": "discord",
+	"slack.com": "slack",
+	"facebook.com": "facebook",
+	"instagram.com": "instagram",
+	"reddit.com": "reddit",
+}
+
+
+def process_navbar_items(navbar_items: list) -> list:
+	"""
+	Process navbar items to add icon detection for known services.
+
+	Args:
+	        navbar_items: List of Top Bar Item documents
+
+	Returns:
+	        List of processed navbar item dicts with icon info
+	"""
+	processed = []
+	for item in navbar_items:
+		icon = None
+		if item.url:
+			domain = urlparse(item.url).netloc.replace("www.", "")
+			for service_domain, icon_name in KNOWN_SERVICE_ICONS.items():
+				if service_domain in domain:
+					icon = icon_name
+					break
+
+		processed.append(
+			{
+				"label": item.label,
+				"url": item.url,
+				"icon": icon,
+				"open_in_new_tab": item.open_in_new_tab,
+				"right": item.right,
+			}
+		)
+	return processed
 
 
 class WikiDocument(NestedSet):
@@ -208,12 +257,18 @@ class WikiDocument(NestedSet):
 			order_by="space_name asc",
 		)
 
+		# Process navbar items with icon detection
+		navbar_items = []
+		if wiki_space_doc and wiki_space_doc.navbar_items:
+			navbar_items = process_navbar_items(wiki_space_doc.navbar_items)
+
 		return {
 			"doc": self,
 			"title": self.title,
 			"route": self.route,
 			"wiki_space": wiki_space_doc,
 			"wiki_spaces_for_switcher": wiki_spaces_for_switcher,
+			"navbar_items": navbar_items,
 			"rendered_content": content_html,
 			"raw_markdown": self.content or "",
 			"nested_tree": nested_tree,

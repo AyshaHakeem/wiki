@@ -75,21 +75,8 @@
         {{ render_wiki_tree(nested_tree, current_route=doc.route if doc else '') }}
     </nav>
 
-    <!-- Fixed Footer with Theme Toggle and Collapse -->
-    <div class="p-3 border-t border-[var(--outline-gray-1)] bg-[var(--surface-white)] flex-shrink-0 space-y-2">
-        <!-- Theme Toggle -->
-        <button @click="$store.theme.toggle()"
-                class="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-[var(--ink-gray-5)] hover:text-[var(--ink-gray-9)] hover:bg-[var(--surface-gray-2)] rounded-md transition-colors duration-200 cursor-pointer">
-            <template x-if="$store.theme.isDark">
-                {{ render_icon("sun", "mr-2") }}
-            </template>
-            <template x-if="!$store.theme.isDark">
-                {{ render_icon("moon", "mr-2") }}
-            </template>
-            <span x-text="$store.theme.isDark ? 'Light Mode' : 'Dark Mode'"></span>
-        </button>
-
-        <!-- Collapse Button -->
+    <!-- Fixed Footer with Collapse Button -->
+    <div class="p-3 border-t border-[var(--outline-gray-1)] bg-[var(--surface-white)] flex-shrink-0">
         <button @click="toggleSidebar()"
                 class="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-[var(--ink-gray-5)] hover:text-[var(--ink-gray-9)] hover:bg-[var(--surface-gray-2)] rounded-md transition-colors duration-200 cursor-pointer">
             {{ render_icon("panel-right-open", "mr-2 text-[var(--ink-gray-6)] transition-transform duration-300") }}

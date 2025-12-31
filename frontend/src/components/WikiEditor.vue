@@ -58,8 +58,7 @@ const hasUnsavedChanges = ref(false);
 const lastSavedAt = ref(null);
 const lastSavedContent = ref(props.content || "");
 
-// Autosave configuration
-const AUTOSAVE_DELAY = 2000; // 3 seconds debounce
+const AUTOSAVE_DELAY = 1 * 60 * 60; // 1 min
 let autosaveTimer = null;
 
 // File upload composable from frappe-ui

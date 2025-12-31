@@ -2,10 +2,12 @@
 # See license.txt
 
 import unittest
+from types import SimpleNamespace
 
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from wiki.frappe_wiki.doctype.wiki_document.wiki_document import process_navbar_items
 from wiki.wiki.markdown import render_markdown
 
 # On IntegrationTestCase, the doctype test records and all
@@ -403,3 +405,181 @@ And this is the conclusion.
 		self.assertIn("callout-note", html)
 		self.assertIn("Important note here", html)
 		self.assertIn("conclusion", html)
+
+
+class TestProcessNavbarItems(unittest.TestCase):
+	"""
+	Unit tests for the process_navbar_items function.
+	Tests icon detection for known services and navbar item processing.
+	"""
+
+	def _make_navbar_item(self, label, url, open_in_new_tab=False, right=False):
+		"""Helper to create a mock navbar item (mimics Top Bar Item)."""
+		return SimpleNamespace(
+			label=label,
+			url=url,
+			open_in_new_tab=open_in_new_tab,
+			right=right,
+		)
+
+	def test_github_url_detected(self):
+		"""Test that GitHub URLs are detected and assigned the github icon."""
+		items = [self._make_navbar_item("GitHub", "https://github.com/frappe/wiki")]
+		result = process_navbar_items(items)
+
+		self.assertEqual(len(result), 1)
+		self.assertEqual(result[0]["icon"], "github")
+		self.assertEqual(result[0]["label"], "GitHub")
+		self.assertEqual(result[0]["url"], "https://github.com/frappe/wiki")
+
+	def test_github_with_www_prefix(self):
+		"""Test that www.github.com URLs are also detected."""
+		items = [self._make_navbar_item("GitHub", "https://www.github.com/frappe")]
+		result = process_navbar_items(items)
+
+		self.assertEqual(result[0]["icon"], "github")
+
+	def test_youtube_url_detected(self):
+		"""Test that YouTube URLs are detected."""
+		items = [self._make_navbar_item("YouTube", "https://youtube.com/channel/xyz")]
+		result = process_navbar_items(items)
+
+		self.assertEqual(result[0]["icon"], "youtube")
+
+	def test_twitter_url_detected(self):
+		"""Test that Twitter URLs are detected."""
+		items = [self._make_navbar_item("Twitter", "https://twitter.com/fraaboride")]
+		result = process_navbar_items(items)
+
+		self.assertEqual(result[0]["icon"], "twitter")
+
+	def test_x_com_maps_to_twitter(self):
+		"""Test that x.com URLs are mapped to twitter icon."""
+		items = [self._make_navbar_item("X", "https://x.com/frappeframework")]
+		result = process_navbar_items(items)
+
+		self.assertEqual(result[0]["icon"], "twitter")
+
+	def test_discord_url_detected(self):
+		"""Test that Discord URLs are detected."""
+		items = [self._make_navbar_item("Discord", "https://discord.com/invite/abc")]
+		result = process_navbar_items(items)
+
+		self.assertEqual(result[0]["icon"], "discord")
+
+	def test_discord_gg_url_detected(self):
+		"""Test that discord.gg invite URLs are detected."""
+		items = [self._make_navbar_item("Join Discord", "https://discord.gg/abc123")]
+		result = process_navbar_items(items)
+
+		self.assertEqual(result[0]["icon"], "discord")
+
+	def test_linkedin_url_detected(self):
+		"""Test that LinkedIn URLs are detected."""
+		items = [self._make_navbar_item("LinkedIn", "https://linkedin.com/company/frappe")]
+		result = process_navbar_items(items)
+
+		self.assertEqual(result[0]["icon"], "linkedin")
+
+	def test_slack_url_detected(self):
+		"""Test that Slack URLs are detected."""
+		items = [self._make_navbar_item("Slack", "https://slack.com/workspace")]
+		result = process_navbar_items(items)
+
+		self.assertEqual(result[0]["icon"], "slack")
+
+	def test_facebook_url_detected(self):
+		"""Test that Facebook URLs are detected."""
+		items = [self._make_navbar_item("Facebook", "https://facebook.com/frappe")]
+		result = process_navbar_items(items)
+
+		self.assertEqual(result[0]["icon"], "facebook")
+
+	def test_instagram_url_detected(self):
+		"""Test that Instagram URLs are detected."""
+		items = [self._make_navbar_item("Instagram", "https://instagram.com/frappe")]
+		result = process_navbar_items(items)
+
+		self.assertEqual(result[0]["icon"], "instagram")
+
+	def test_reddit_url_detected(self):
+		"""Test that Reddit URLs are detected."""
+		items = [self._make_navbar_item("Reddit", "https://reddit.com/r/erpnext")]
+		result = process_navbar_items(items)
+
+		self.assertEqual(result[0]["icon"], "reddit")
+
+	def test_unknown_url_has_no_icon(self):
+		"""Test that unknown/custom URLs have no icon assigned."""
+		items = [self._make_navbar_item("Custom Link", "https://example.com")]
+		result = process_navbar_items(items)
+
+		self.assertIsNone(result[0]["icon"])
+		self.assertEqual(result[0]["label"], "Custom Link")
+
+	def test_empty_url_has_no_icon(self):
+		"""Test that items with empty URL have no icon."""
+		items = [self._make_navbar_item("Empty", "")]
+		result = process_navbar_items(items)
+
+		self.assertIsNone(result[0]["icon"])
+
+	def test_none_url_has_no_icon(self):
+		"""Test that items with None URL have no icon."""
+		items = [self._make_navbar_item("None URL", None)]
+		result = process_navbar_items(items)
+
+		self.assertIsNone(result[0]["icon"])
+
+	def test_preserves_open_in_new_tab(self):
+		"""Test that open_in_new_tab flag is preserved."""
+		items = [self._make_navbar_item("Link", "https://example.com", open_in_new_tab=True)]
+		result = process_navbar_items(items)
+
+		self.assertTrue(result[0]["open_in_new_tab"])
+
+	def test_preserves_right_alignment(self):
+		"""Test that right alignment flag is preserved."""
+		items = [self._make_navbar_item("Link", "https://example.com", right=True)]
+		result = process_navbar_items(items)
+
+		self.assertTrue(result[0]["right"])
+
+	def test_multiple_items_processed(self):
+		"""Test that multiple items are all processed correctly."""
+		items = [
+			self._make_navbar_item("GitHub", "https://github.com/frappe"),
+			self._make_navbar_item("Docs", "https://docs.frappe.io"),
+			self._make_navbar_item("Discord", "https://discord.gg/frappe"),
+		]
+		result = process_navbar_items(items)
+
+		self.assertEqual(len(result), 3)
+		self.assertEqual(result[0]["icon"], "github")
+		self.assertIsNone(result[1]["icon"])  # docs.frappe.io is not a known service
+		self.assertEqual(result[2]["icon"], "discord")
+
+	def test_empty_list(self):
+		"""Test that empty list returns empty list."""
+		result = process_navbar_items([])
+
+		self.assertEqual(result, [])
+
+	def test_subdomain_not_matched(self):
+		"""Test that subdomains like api.github.com are still matched."""
+		items = [self._make_navbar_item("API", "https://api.github.com/repos")]
+		result = process_navbar_items(items)
+
+		# api.github.com contains github.com so it should match
+		self.assertEqual(result[0]["icon"], "github")
+
+	def test_url_with_path_matched(self):
+		"""Test that URLs with paths are correctly matched."""
+		items = [
+			self._make_navbar_item("Repo", "https://github.com/frappe/wiki/issues"),
+			self._make_navbar_item("Video", "https://youtube.com/watch?v=abc123"),
+		]
+		result = process_navbar_items(items)
+
+		self.assertEqual(result[0]["icon"], "github")
+		self.assertEqual(result[1]["icon"], "youtube")
