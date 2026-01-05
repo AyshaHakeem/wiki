@@ -31,14 +31,9 @@
 <script>
     // Initialize Alpine.js stores
     document.addEventListener('alpine:init', () => {
-        // Get initial theme from localStorage or system preference
+        // Get initial theme from localStorage, default to light
         const stored = localStorage.getItem('wiki-theme');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const initialIsDark = stored ? stored === 'dark' : prefersDark;
-
-        // Set initial theme on document
-        const initialTheme = initialIsDark ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', initialTheme);
+        const initialIsDark = stored === 'dark';
 
         // Theme store for dark/light mode
         Alpine.store('theme', {

@@ -18,9 +18,9 @@
     <!-- Theme initialization - must run before page renders to prevent flash -->
     <script>
         (function() {
-            const stored = localStorage.getItem('data-theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const theme = stored || (prefersDark ? 'dark' : 'light');
+            const stored = localStorage.getItem('wiki-theme');
+            // Default to light theme if no preference is stored
+            const theme = stored || 'light';
             document.documentElement.setAttribute('data-theme', theme);
         })();
 
