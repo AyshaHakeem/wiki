@@ -9,6 +9,14 @@
             <div class="space-y-4">
                 <FormControl
                     type="text"
+                    required
+                    :label="__('Title')"
+                    v-model="settingsForm.title"
+                    :placeholder="__('Page title')"
+                />
+                <FormControl
+                    type="text"
+                    required
                     :label="__('Route')"
                     v-model="settingsForm.route"
                     :placeholder="__('e.g., docs/getting-started')"
@@ -56,6 +64,7 @@ const show = defineModel({ type: Boolean, default: false });
 const emit = defineEmits(['saved']);
 
 const settingsForm = reactive({
+    title: '',
     route: '',
     is_private: false,
 });
@@ -63,6 +72,7 @@ const settingsForm = reactive({
 // Initialize form when dialog opens
 watch(show, (isOpen) => {
     if (isOpen && props.doc) {
+        settingsForm.title = props.doc.title || '';
         settingsForm.route = props.doc.route || '';
         settingsForm.is_private = Boolean(props.doc.is_private);
     }
@@ -85,6 +95,7 @@ function saveSettings() {
         doctype: 'Wiki Document',
         name: props.pageId,
         fieldname: {
+            title: settingsForm.title,
             route: settingsForm.route,
             is_private: settingsForm.is_private ? 1 : 0,
         },
