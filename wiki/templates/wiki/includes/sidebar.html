@@ -212,35 +212,35 @@
                 let html = '';
 
                 if (prevDoc || nextDoc) {
-                    const justifyClass = prevDoc && nextDoc ? 'justify-between' : (prevDoc ? 'justify-start' : 'justify-end');
-                    html = `<div class="flex items-stretch gap-4 ${justifyClass}">`;
+                    const justifyClass = prevDoc && nextDoc ? 'sm:justify-between' : (prevDoc ? 'sm:justify-start' : 'sm:justify-end');
+                    html = `<div class="flex flex-col sm:flex-row sm:items-stretch gap-4 ${justifyClass}">`;
 
                     if (prevDoc) {
                         html += `
                             <a href="/${prevDoc.route}"
                                @click.prevent="$store.navigation.navigateTo('${prevDoc.route}')"
                                @mouseenter="$store.navigation.prefetch('${prevDoc.route}')"
-                               class="group flex-1 flex items-center gap-3 p-4 rounded-lg border border-[var(--outline-gray-1)] hover:border-[var(--outline-gray-2)] hover:bg-[var(--surface-gray-1)] transition-all duration-200 no-underline max-w-[50%]">
+                               class="group sm:flex-1 flex items-center gap-3 p-4 rounded-lg border border-[var(--outline-gray-1)] hover:border-[var(--outline-gray-2)] hover:bg-[var(--surface-gray-1)] transition-all duration-200 no-underline sm:max-w-[50%] overflow-hidden">
                                 <svg class="w-5 h-5 text-[var(--ink-gray-4)] group-hover:text-[var(--ink-gray-6)] transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                                 </svg>
                                 <div class="flex flex-col min-w-0">
-                                    <span class="text-xs font-medium text-[var(--ink-gray-4)] uppercase tracking-wide">Previous</span>
-                                    <span class="text-sm font-medium text-[var(--ink-gray-7)] group-hover:text-[var(--ink-gray-9)] transition-colors truncate">${prevDoc.title}</span>
+                                    <span class="text-xs font-medium text-[var(--ink-gray-4)] uppercase tracking-wide">Previous Page</span>
+                                    <span class="text-sm font-medium text-[var(--ink-gray-7)] group-hover:text-[var(--ink-gray-9)] transition-colors sm:truncate">${prevDoc.title}</span>
                                 </div>
                             </a>`;
                     }
 
                     if (nextDoc) {
-                        const mlClass = !prevDoc ? 'ml-auto' : '';
+                        const mlClass = !prevDoc ? 'sm:ml-auto' : '';
                         html += `
                             <a href="/${nextDoc.route}"
                                @click.prevent="$store.navigation.navigateTo('${nextDoc.route}')"
                                @mouseenter="$store.navigation.prefetch('${nextDoc.route}')"
-                               class="group flex-1 flex items-center justify-end gap-3 p-4 rounded-lg border border-[var(--outline-gray-1)] hover:border-[var(--outline-gray-2)] hover:bg-[var(--surface-gray-1)] transition-all duration-200 no-underline max-w-[50%] ${mlClass}">
-                                <div class="flex flex-col items-end min-w-0">
-                                    <span class="text-xs font-medium text-[var(--ink-gray-4)] uppercase tracking-wide">Next</span>
-                                    <span class="text-sm font-medium text-[var(--ink-gray-7)] group-hover:text-[var(--ink-gray-9)] transition-colors truncate">${nextDoc.title}</span>
+                               class="group sm:flex-1 flex items-center gap-3 p-4 rounded-lg border border-[var(--outline-gray-1)] hover:border-[var(--outline-gray-2)] hover:bg-[var(--surface-gray-1)] transition-all duration-200 no-underline sm:max-w-[50%] overflow-hidden ${mlClass}">
+                                <div class="flex flex-col items-end min-w-0 ml-auto">
+                                    <span class="text-xs font-medium text-[var(--ink-gray-4)] uppercase tracking-wide">Next Page</span>
+                                    <span class="text-sm font-medium text-[var(--ink-gray-7)] group-hover:text-[var(--ink-gray-9)] transition-colors sm:truncate text-right">${nextDoc.title}</span>
                                 </div>
                                 <svg class="w-5 h-5 text-[var(--ink-gray-4)] group-hover:text-[var(--ink-gray-6)] transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
