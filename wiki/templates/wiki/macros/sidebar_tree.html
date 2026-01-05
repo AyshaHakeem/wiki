@@ -3,8 +3,8 @@
         <ul class="wiki-tree">
             {% for node in nodes %}
                 <li class="wiki-item {{ 'is-group' if node.is_group else 'is-page' }}">
-                    <div class="wiki-item-content flex items-center py-2 transition-colors duration-200 {{ 'pl-8' if level == 1 else 'pl-10' if level == 2 else 'pl-12' if level >= 3 else 'pl-4' }} pr-4"
-                         :class="$store.navigation.currentRoute === '{{ node.route }}' && !{{ 'true' if node.is_group else 'false' }} ? 'border-l-2 border-[var(--ink-gray-4)] bg-[var(--surface-gray-2)] text-[var(--ink-gray-9)]' : 'hover:bg-[var(--surface-gray-2)] cursor-pointer'"
+                    <div class="wiki-item-content flex items-center py-2 transition-colors duration-200 border-l-2 {{ 'pl-8' if level == 1 else 'pl-10' if level == 2 else 'pl-12' if level >= 3 else 'pl-4' }} pr-4"
+                         :class="$store.navigation.currentRoute === '{{ node.route }}' && !{{ 'true' if node.is_group else 'false' }} ? 'border-[var(--ink-gray-4)] bg-[var(--surface-gray-2)] text-[var(--ink-gray-9)]' : 'border-transparent hover:bg-[var(--surface-gray-2)] cursor-pointer'"
                          {% if node.is_group %}@click="toggleNode('{{ node.name }}')"{% endif %}
                          data-route="{{ node.route }}"
                          data-node-id="{{ node.name }}">
