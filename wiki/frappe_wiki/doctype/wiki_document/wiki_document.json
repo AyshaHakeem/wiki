@@ -77,8 +77,9 @@
 		},
 		{
 			"fieldname": "content",
-			"fieldtype": "Markdown Editor",
-			"label": "Content"
+			"fieldtype": "Code",
+			"label": "Content",
+			"options": "Markdown"
 		},
 		{
 			"default": "0",
@@ -112,7 +113,7 @@
 	"index_web_pages_for_search": 1,
 	"is_tree": 1,
 	"links": [],
-	"modified": "2025-12-25 11:35:48.570670",
+	"modified": "2026-01-06 17:05:03.221639",
 	"modified_by": "Administrator",
 	"module": "Frappe Wiki",
 	"name": "Wiki Document",

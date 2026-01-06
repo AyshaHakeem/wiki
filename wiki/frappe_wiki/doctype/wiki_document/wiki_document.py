@@ -68,7 +68,7 @@ class WikiDocument(NestedSet):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		content: DF.MarkdownEditor | None
+		content: DF.Code | None
 		is_group: DF.Check
 		is_private: DF.Check
 		is_published: DF.Check
