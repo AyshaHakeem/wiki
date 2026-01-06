@@ -163,3 +163,7 @@ def highlight_changes(original_md, changes):
 				insert_pos += 1
 
 	return "\n".join(lines)
+
+
+def add_wiki_user_role(doc, event=None):
+	doc.add_roles("Wiki User")
