@@ -310,7 +310,7 @@ const dropdownOptions = computed(() => [
 
 .callout-content-text {
     white-space: pre-wrap;
-    color: var(--ink-gray-6, #6b7280);
+    color: var(--ink-gray-7, #4b5563);
 }
 
 .callout-content-editor {

@@ -208,7 +208,7 @@
 .callout-content {
   font-size: 0.875rem;
   line-height: 1.5;
-  color: var(--ink-gray-6);
+  color: var(--ink-gray-7);
 }
 
 .callout-content > *:first-child {

@@ -2,7 +2,7 @@
   <div class="flex flex-col gap-4 p-4">
     <div class="flex items-center justify-between">
       <h2 class="text-xl font-semibold text-ink-gray-9">{{ __('Wiki Spaces') }}</h2>
-      <Button variant="solid" @click="showCreateDialog = true">
+      <Button v-if="isManager" variant="solid" @click="showCreateDialog = true">
         <template #prefix>
           <LucidePlus class="h-4 w-4" />
         </template>
@@ -21,12 +21,12 @@
         getRowRoute: (row) => ({ name: 'SpaceDetails', params: { spaceId: row.name } }),
         emptyState: {
           title: __('No Wiki Spaces'),
-          description: __('Create your first wiki space to get started'),
-          button: {
+          description: isManager ? __('Create your first wiki space to get started') : __('No wiki spaces available'),
+          button: isManager ? {
             label: __('New Space'),
             variant: 'solid',
             onClick: () => (showCreateDialog = true),
-          },
+          } : undefined,
         },
       }"
       row-key="name"
@@ -72,7 +72,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from "vue";
+import { ref, reactive, watch, computed } from "vue";
 import { useRouter } from "vue-router";
 import {
   ListView,
@@ -84,8 +84,10 @@ import {
   toast
 } from "frappe-ui";
 import LucidePlus from "~icons/lucide/plus";
+import { isWikiManager } from "@/composables/useContributionMode";
 
 const router = useRouter();
+const isManager = computed(() => isWikiManager());
 
 const showCreateDialog = ref(false);
 const routeManuallyEdited = ref(false);
