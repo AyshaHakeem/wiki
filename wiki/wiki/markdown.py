@@ -21,6 +21,32 @@ from urllib.parse import quote
 
 import mistune
 
+
+def slugify(text: str) -> str:
+	"""
+	Convert text to a URL-friendly slug for heading IDs.
+
+	Args:
+	    text: The heading text to slugify
+
+	Returns:
+	    A lowercase, hyphenated slug suitable for use as an HTML id
+	"""
+	# Remove HTML tags if any
+	text = re.sub(r"<[^>]+>", "", text)
+	# Convert to lowercase
+	text = text.lower()
+	# Replace spaces and underscores with hyphens
+	text = re.sub(r"[\s_]+", "-", text)
+	# Remove characters that aren't alphanumerics, hyphens, or unicode letters
+	text = re.sub(r"[^\w\-]", "", text, flags=re.UNICODE)
+	# Remove leading/trailing hyphens
+	text = text.strip("-")
+	# Collapse multiple hyphens
+	text = re.sub(r"-+", "-", text)
+	return text
+
+
 # Default titles for each callout type
 DEFAULT_TITLES = {
 	"note": "Note",
@@ -183,7 +209,29 @@ class WikiRenderer(mistune.HTMLRenderer):
 	Alt text remains for accessibility, caption is separate.
 	"""
 
-	pass  # Use default mistune rendering
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+		self._heading_slugs = {}  # Track used slugs to avoid duplicates
+
+	def heading(self, text: str, level: int, **attrs) -> str:
+		"""Render heading with slugified ID for anchor links."""
+		# Generate base slug from heading text
+		slug = slugify(text)
+
+		# Handle empty slugs
+		if not slug:
+			slug = "heading"
+
+		# Ensure unique slugs by appending numbers for duplicates
+		original_slug = slug
+		counter = 1
+		while slug in self._heading_slugs:
+			slug = f"{original_slug}-{counter}"
+			counter += 1
+
+		self._heading_slugs[slug] = True
+
+		return f'<h{level} id="{slug}">{text}</h{level}>\n'
 
 
 def render_markdown(content: str) -> str:

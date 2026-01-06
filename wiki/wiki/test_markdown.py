@@ -21,16 +21,83 @@ class TestMarkdownRenderer(unittest.TestCase):
 		self.assertEqual(render_markdown(None), "")
 
 	def test_headings(self):
-		"""Test heading rendering."""
+		"""Test heading rendering with slugified IDs."""
 		result = render_markdown("# Heading 1\n## Heading 2")
-		self.assertIn("<h1>Heading 1</h1>", result)
-		self.assertIn("<h2>Heading 2</h2>", result)
+		self.assertIn('<h1 id="heading-1">Heading 1</h1>', result)
+		self.assertIn('<h2 id="heading-2">Heading 2</h2>', result)
 
 	def test_links(self):
 		"""Test link rendering."""
 		result = render_markdown("[Link text](https://example.com)")
 		self.assertIn('href="https://example.com"', result)
 		self.assertIn("Link text", result)
+
+
+class TestHeadingSlugGeneration(unittest.TestCase):
+	"""Tests for heading ID/slug generation."""
+
+	def test_heading_slug_basic(self):
+		"""Test basic heading slug generation."""
+		result = render_markdown("## What is ERPNext?")
+		self.assertIn('<h2 id="what-is-erpnext">What is ERPNext?</h2>', result)
+
+	def test_heading_slug_with_spaces(self):
+		"""Test heading with spaces gets hyphenated slug."""
+		result = render_markdown("## Getting Started Guide")
+		self.assertIn('<h2 id="getting-started-guide">Getting Started Guide</h2>', result)
+
+	def test_heading_slug_lowercase(self):
+		"""Test heading slug is lowercase."""
+		result = render_markdown("## UPPERCASE HEADING")
+		self.assertIn('<h2 id="uppercase-heading">UPPERCASE HEADING</h2>', result)
+
+	def test_heading_slug_removes_special_chars(self):
+		"""Test heading slug removes special characters."""
+		result = render_markdown("## What's New? (2024)")
+		self.assertIn('<h2 id="whats-new-2024">What\'s New? (2024)</h2>', result)
+
+	def test_heading_slug_duplicate_handling(self):
+		"""Test duplicate headings get unique slugs."""
+		content = """## Introduction
+## Details
+## Introduction
+## Introduction"""
+		result = render_markdown(content)
+		self.assertIn('<h2 id="introduction">Introduction</h2>', result)
+		self.assertIn('<h2 id="details">Details</h2>', result)
+		self.assertIn('<h2 id="introduction-1">Introduction</h2>', result)
+		self.assertIn('<h2 id="introduction-2">Introduction</h2>', result)
+
+	def test_heading_slug_all_levels(self):
+		"""Test slug generation works for all heading levels."""
+		content = """# Level One
+## Level Two
+### Level Three
+#### Level Four
+##### Level Five
+###### Level Six"""
+		result = render_markdown(content)
+		self.assertIn('<h1 id="level-one">Level One</h1>', result)
+		self.assertIn('<h2 id="level-two">Level Two</h2>', result)
+		self.assertIn('<h3 id="level-three">Level Three</h3>', result)
+		self.assertIn('<h4 id="level-four">Level Four</h4>', result)
+		self.assertIn('<h5 id="level-five">Level Five</h5>', result)
+		self.assertIn('<h6 id="level-six">Level Six</h6>', result)
+
+	def test_heading_slug_unicode(self):
+		"""Test heading with unicode characters."""
+		result = render_markdown("## Café Setup")
+		self.assertIn('<h2 id="café-setup">Café Setup</h2>', result)
+
+	def test_heading_slug_numbers(self):
+		"""Test heading with numbers."""
+		result = render_markdown("## Step 1: Install")
+		self.assertIn('<h2 id="step-1-install">Step 1: Install</h2>', result)
+
+	def test_heading_slug_collapses_hyphens(self):
+		"""Test multiple spaces/special chars collapse to single hyphen."""
+		result = render_markdown("## Hello   ---   World")
+		self.assertIn('<h2 id="hello-world">Hello   ---   World</h2>', result)
 
 
 class TestImageCaptionSupport(unittest.TestCase):
@@ -223,8 +290,11 @@ Some text after."""
 
 		result = render_markdown(content)
 
-		# Check headings
-		self.assertIn("<h2>Method 1: Download and Install from Windows PC (USB)</h2>", result)
+		# Check headings (with slugified ID)
+		self.assertIn(
+			'<h2 id="method-1-download-and-install-from-windows-pc-usb">Method 1: Download and Install from Windows PC (USB)</h2>',
+			result,
+		)
 
 		# Check callouts
 		self.assertIn("callout-note", result)
@@ -333,7 +403,7 @@ Some paragraph text.
 More text after."""
 		result = render_markdown(content)
 
-		self.assertIn("<h1>Heading</h1>", result)
+		self.assertIn('<h1 id="heading">Heading</h1>', result)
 		self.assertIn('<div align="center">', result)
 		self.assertIn('<img src="/files/centered-image.png">', result)
 		self.assertIn("</div>", result)
