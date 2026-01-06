@@ -297,6 +297,47 @@ This is a tip with a custom title
 		self.assertIn('class="callout callout-tip"', html)
 		self.assertIn('<span class="callout-title">Did you know?</span>', html)
 
+	def test_custom_title_all_types(self):
+		"""Test custom titles work for all callout types"""
+		types_and_titles = [
+			("note", "Important Information"),
+			("tip", "Pro Tip"),
+			("caution", "Be Careful"),
+			("danger", "Critical Warning"),
+		]
+		for callout_type, title in types_and_titles:
+			md = f""":::{callout_type}[{title}]
+Content here
+:::"""
+			html = render_markdown(md)
+			self.assertIn(f'class="callout callout-{callout_type}"', html)
+			self.assertIn(f'<span class="callout-title">{title}</span>', html)
+
+	def test_custom_title_with_special_characters(self):
+		"""Test custom title with special characters"""
+		md = """:::note[What's this? A "special" title!]
+Content here
+:::"""
+		html = render_markdown(md)
+		self.assertIn('<span class="callout-title">What\'s this? A "special" title!</span>', html)
+
+	def test_custom_title_empty_brackets(self):
+		"""Test callout with empty brackets uses default title"""
+		md = """:::note[]
+Content here
+:::"""
+		html = render_markdown(md)
+		self.assertIn('<span class="callout-title">Note</span>', html)
+
+	def test_custom_title_warning_alias(self):
+		"""Test custom title with warning type (aliased to caution)"""
+		md = """:::warning[Watch Out!]
+Be careful here
+:::"""
+		html = render_markdown(md)
+		self.assertIn('class="callout callout-caution"', html)
+		self.assertIn('<span class="callout-title">Watch Out!</span>', html)
+
 	def test_callout_with_markdown_content(self):
 		"""Test callout with markdown formatting inside"""
 		md = """:::note

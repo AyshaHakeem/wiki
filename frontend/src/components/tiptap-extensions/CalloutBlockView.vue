@@ -8,6 +8,13 @@
 
 import { computed, ref, nextTick, watch, onMounted, onUnmounted } from 'vue';
 import { NodeViewWrapper } from '@tiptap/vue-3';
+import { Dropdown, Button, Dialog, Input } from 'frappe-ui';
+import LucideMoreHorizontal from '~icons/lucide/more-horizontal';
+import LucideInfo from '~icons/lucide/info';
+import LucideLightbulb from '~icons/lucide/lightbulb';
+import LucideTriangleAlert from '~icons/lucide/triangle-alert';
+import LucideShieldAlert from '~icons/lucide/shield-alert';
+import LucidePencil from '~icons/lucide/pencil';
 
 const props = defineProps({
     node: {
@@ -21,6 +28,10 @@ const props = defineProps({
     selected: {
         type: Boolean,
         default: false,
+    },
+    deleteNode: {
+        type: Function,
+        required: true,
     },
 });
 
@@ -129,6 +140,64 @@ onUnmounted(() => {
     document.removeEventListener('wiki-editor-before-save', handleBeforeSave);
     document.removeEventListener('wiki-editor-after-save', handleAfterSave);
 });
+
+// Title editing dialog
+const showTitleDialog = ref(false);
+const editingTitle = ref('');
+
+function openTitleDialog() {
+    editingTitle.value = props.node.attrs.title || '';
+    showTitleDialog.value = true;
+}
+
+function saveTitle() {
+    props.updateAttributes({ title: editingTitle.value });
+    showTitleDialog.value = false;
+}
+
+function changeType(newType) {
+    props.updateAttributes({ type: newType });
+}
+
+// Dropdown menu options
+const dropdownOptions = computed(() => [
+    {
+        label: 'Edit Title',
+        icon: LucidePencil,
+        onClick: openTitleDialog,
+    },
+    {
+        label: 'Delete',
+        icon: 'trash-2',
+        onClick: () => props.deleteNode(),
+    },
+    {
+        group: 'Type',
+        hideLabel: true,
+        items: [
+            {
+                label: 'Note',
+                icon: LucideInfo,
+                onClick: () => changeType('note'),
+            },
+            {
+                label: 'Tip',
+                icon: LucideLightbulb,
+                onClick: () => changeType('tip'),
+            },
+            {
+                label: 'Caution',
+                icon: LucideTriangleAlert,
+                onClick: () => changeType('caution'),
+            },
+            {
+                label: 'Danger',
+                icon: LucideShieldAlert,
+                onClick: () => changeType('danger'),
+            },
+        ],
+    },
+]);
 </script>
 
 <template>
@@ -137,23 +206,48 @@ onUnmounted(() => {
         :class="[`callout-${normalizedType}`, { 'is-selected': selected }]"
         contenteditable="false"
     >
-        <span class="callout-icon" v-html="icon"></span>
-        <div class="callout-body">
+        <div class="callout-header">
+            <span class="callout-icon" v-html="icon"></span>
             <span class="callout-title-text">{{ displayTitle }}</span>
-            <div class="callout-content" @dblclick="startEditing">
-                <textarea
-                    v-if="isEditingContent"
-                    ref="textareaRef"
-                    v-model="editableContent"
-                    class="callout-content-editor"
-                    @blur="finishEditing"
-                    @keydown.escape="finishEditing"
-                ></textarea>
-                <div v-else class="callout-content-text">
-                    {{ node.attrs.content || 'Double-click to edit...' }}
-                </div>
+            <Dropdown :options="dropdownOptions" placement="bottom-end">
+                <Button variant="ghost" size="sm" class="callout-menu-btn">
+                    <LucideMoreHorizontal class="size-3.5" />
+                </Button>
+            </Dropdown>
+        </div>
+        <div class="callout-content" @dblclick="startEditing">
+            <textarea
+                v-if="isEditingContent"
+                ref="textareaRef"
+                v-model="editableContent"
+                class="callout-content-editor"
+                @blur="finishEditing"
+                @keydown.escape="finishEditing"
+            ></textarea>
+            <div v-else class="callout-content-text">
+                {{ node.attrs.content || 'Double-click to edit...' }}
             </div>
         </div>
+
+        <!-- Title Edit Dialog -->
+        <Dialog v-model="showTitleDialog" :options="{ title: 'Edit Callout Title' }">
+            <template #body-content>
+                <div class="space-y-4">
+                    <Input
+                        v-model="editingTitle"
+                        label="Title"
+                        placeholder="Leave empty for default title"
+                        @keydown.enter="saveTitle"
+                    />
+                    <p class="text-sm text-gray-500">
+                        Default title: {{ defaultTitles[normalizedType] }}
+                    </p>
+                </div>
+            </template>
+            <template #actions>
+                <Button variant="solid" @click="saveTitle">Save</Button>
+            </template>
+        </Dialog>
     </NodeViewWrapper>
 </template>
 
@@ -164,10 +258,9 @@ onUnmounted(() => {
     padding: 0.875rem 1rem;
     border-radius: 0.375rem;
     position: relative;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.75rem;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 /* Remove the selected outline - it's distracting when editing */
@@ -175,11 +268,16 @@ onUnmounted(() => {
     outline: none;
 }
 
+.callout-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .callout-icon {
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    padding-top: 0.125rem;
 }
 
 .callout-icon :deep(svg) {
@@ -187,17 +285,22 @@ onUnmounted(() => {
     height: 1rem;
 }
 
-.callout-body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
 .callout-title-text {
+    flex: 1;
     font-weight: 500;
     font-size: 0.875rem;
     line-height: 1.4;
     color: var(--ink-gray-9, #111827);
+}
+
+.callout-menu-btn {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    flex-shrink: 0;
+}
+
+.callout-block-wrapper:hover .callout-menu-btn {
+    opacity: 1;
 }
 
 .callout-content {
