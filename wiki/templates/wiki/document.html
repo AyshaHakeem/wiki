@@ -12,15 +12,25 @@
              :class="{ 'opacity-50': $store.navigation.loading, 'xl:!max-w-[100ch]': $store.sidebar?.isCollapsed }">
         <!-- Page Header -->
         <header class="py-6 mb-8">
-            <div class="flex items-center justify-between gap-4">
-                <h1 id="wiki-page-title" class="text-2xl font-bold text-[var(--ink-gray-9)]">{{ doc.title }}</h1>
-
-                <!-- Page Actions Dropdown -->
+            <!-- Mobile: Edit above title -->
+            <div class="flex justify-start mb-8 sm:hidden">
                 {{ page_actions_dropdown(edit_href=doc.get_edit_link(), edit_text="Edit") }}
                     {{ page_action_item(text="Copy page", description="Copy page as Markdown for LLMs", icon="clipboard", click="copyMarkdown(); open = false") }}
                     {{ page_action_item(text="Open in ChatGPT", description="Ask ChatGPT about this page", icon="openai", href_expr="getAIUrl('openai')", target="_blank") }}
                     {{ page_action_item(text="Open in Claude", description="Ask Claude about this page", icon="claude", href_expr="getAIUrl('claude')", target="_blank") }}
                 {{ dropdown_end() }}
+            </div>
+            <div class="flex items-center justify-between gap-4">
+                <h1 id="wiki-page-title" class="text-2xl font-bold text-[var(--ink-gray-9)]">{{ doc.title }}</h1>
+
+                <!-- Desktop: Edit beside title -->
+                <div class="hidden sm:block">
+                    {{ page_actions_dropdown(edit_href=doc.get_edit_link(), edit_text="Edit") }}
+                        {{ page_action_item(text="Copy page", description="Copy page as Markdown for LLMs", icon="clipboard", click="copyMarkdown(); open = false") }}
+                        {{ page_action_item(text="Open in ChatGPT", description="Ask ChatGPT about this page", icon="openai", href_expr="getAIUrl('openai')", target="_blank") }}
+                        {{ page_action_item(text="Open in Claude", description="Ask Claude about this page", icon="claude", href_expr="getAIUrl('claude')", target="_blank") }}
+                    {{ dropdown_end() }}
+                </div>
             </div>
         </header>
 
