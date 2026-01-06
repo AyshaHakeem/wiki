@@ -4,6 +4,7 @@
 from urllib.parse import urlparse
 
 import frappe
+from frappe import _
 from frappe.utils import pretty_date
 from frappe.utils.nestedset import NestedSet, get_descendants_of
 from frappe.website.page_renderers.base_renderer import BaseRenderer
@@ -281,23 +282,46 @@ class WikiDocument(NestedSet):
 
 	@frappe.whitelist()
 	def get_children_count(self) -> int:
-		"""Get the count of children for this Wiki Document."""
+		"""Get the count of children for this Wiki Document that the user can read."""
 		descendants = get_descendants_of("Wiki Document", self.name)
-		return len(descendants) if descendants else 0
+		if not descendants:
+			return 0
+
+		# Filter to only include documents the user has read permission for
+		permitted_descendants = [
+			name for name in descendants if frappe.has_permission("Wiki Document", "read", name)
+		]
+		return len(permitted_descendants)
 
 	@frappe.whitelist()
 	def delete_with_children(self) -> dict:
 		"""Delete this Wiki Document and all its children."""
+		# Check permission on the root document
+		if not frappe.has_permission("Wiki Document", "delete", doc=self.name):
+			frappe.throw(_("You don't have permission to delete this document"), frappe.PermissionError)
+
 		descendants = get_descendants_of("Wiki Document", self.name)
-		child_count = len(descendants) if descendants else 0
+		child_count = 0
+
+		# Check delete permission on all descendants before deleting any
+		if descendants:
+			for child_name in descendants:
+				if not frappe.has_permission("Wiki Document", "delete", doc=child_name):
+					frappe.throw(
+						_("You don't have permission to delete child document: {0}").format(child_name),
+						frappe.PermissionError,
+					)
+			child_count = len(descendants)
 
 		# Delete all descendants first (NestedSet requires this)
+		# Use frappe.get_doc().delete() to enforce permission checks
 		if descendants:
 			for child_name in reversed(descendants):
-				frappe.delete_doc("Wiki Document", child_name, force=True)
+				child_doc = frappe.get_doc("Wiki Document", child_name)
+				child_doc.delete()
 
 		# Delete the document itself
-		frappe.delete_doc("Wiki Document", self.name, force=True)
+		frappe.delete_doc("Wiki Document", self.name)
 
 		return {"deleted": self.name, "children_deleted": child_count}
 

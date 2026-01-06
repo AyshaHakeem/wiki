@@ -98,7 +98,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStorage } from '@vueuse/core';
 import { Dropdown, Badge, Button, createResource, toast } from 'frappe-ui';
@@ -149,7 +149,8 @@ watch(() => props.items, (newItems) => {
     localItems.value = [...newItems];
 }, { deep: true });
 
-const expandedNodes = useStorage('wiki-tree-expanded-nodes', {});
+const storageKey = computed(() => `wiki-tree-expanded-nodes-${props.spaceId || 'default'}`);
+const expandedNodes = useStorage(storageKey, {});
 
 function isExpanded(name) {
     return expandedNodes.value[name] === true;

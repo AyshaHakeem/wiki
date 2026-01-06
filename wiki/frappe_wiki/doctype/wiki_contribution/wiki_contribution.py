@@ -253,6 +253,58 @@ class WikiContribution(Document):
 # API Functions
 
 
+def check_contribution_permission(name: str, ptype: str = "read"):
+	"""
+	Check if current user has permission to access the contribution.
+	Enforces if_owner policy for users without Wiki Manager/System Manager roles.
+	"""
+	user = frappe.session.user
+	if user == "Administrator":
+		return
+
+	user_roles = frappe.get_roles(user)
+	# System Manager and Wiki Manager have full access
+	if "System Manager" in user_roles or "Wiki Manager" in user_roles:
+		return
+
+	# For other users, enforce if_owner policy
+	owner = frappe.db.get_value("Wiki Contribution", name, "owner")
+	if not owner:
+		frappe.throw(_("Wiki Contribution {0} not found").format(name), frappe.DoesNotExistError)
+
+	if owner != user:
+		frappe.throw(
+			_("You don't have permission to {0} this Wiki Contribution").format(ptype),
+			frappe.PermissionError,
+		)
+
+
+def check_batch_permission(batch: str, ptype: str = "read"):
+	"""
+	Check if current user has permission to access the batch.
+	Enforces if_owner policy for users without Wiki Manager/System Manager roles.
+	"""
+	user = frappe.session.user
+	if user == "Administrator":
+		return
+
+	user_roles = frappe.get_roles(user)
+	# System Manager and Wiki Manager have full access
+	if "System Manager" in user_roles or "Wiki Manager" in user_roles:
+		return
+
+	# For other users, enforce if_owner policy
+	owner = frappe.db.get_value("Wiki Contribution Batch", batch, "owner")
+	if not owner:
+		frappe.throw(_("Wiki Contribution Batch {0} not found").format(batch), frappe.DoesNotExistError)
+
+	if owner != user:
+		frappe.throw(
+			_("You don't have permission to {0} contributions in this batch").format(ptype),
+			frappe.PermissionError,
+		)
+
+
 @frappe.whitelist()
 def create_contribution(
 	batch: str,
@@ -270,6 +322,7 @@ def create_contribution(
 	new_sort_order: int | None = None,
 ) -> dict:
 	"""Create a new contribution in a batch."""
+	check_batch_permission(batch, "write")
 	contrib = frappe.new_doc("Wiki Contribution")
 	contrib.batch = batch
 	contrib.operation = operation
@@ -302,7 +355,14 @@ def update_contribution(
 	new_sort_order: int | None = None,
 ) -> dict:
 	"""Update an existing contribution."""
+	check_contribution_permission(name, "write")
 	contrib = frappe.get_doc("Wiki Contribution", name)
+
+	# Verify batch permission and status
+	check_batch_permission(contrib.batch, "write")
+	batch_status = frappe.db.get_value("Wiki Contribution Batch", contrib.batch, "status")
+	if batch_status and batch_status != "Draft":
+		frappe.throw(_("Cannot modify contributions in a batch that is {0}").format(batch_status))
 
 	if proposed_title is not None:
 		contrib.proposed_title = proposed_title
@@ -328,6 +388,16 @@ def update_contribution(
 @frappe.whitelist()
 def delete_contribution(name: str):
 	"""Delete a contribution from a batch."""
+	check_contribution_permission(name, "delete")
+
+	# Verify batch permission and status before deletion
+	batch = frappe.db.get_value("Wiki Contribution", name, "batch")
+	if batch:
+		check_batch_permission(batch, "write")
+		batch_status = frappe.db.get_value("Wiki Contribution Batch", batch, "status")
+		if batch_status and batch_status != "Draft":
+			frappe.throw(_("Cannot delete contributions from a batch that is {0}").format(batch_status))
+
 	frappe.delete_doc("Wiki Contribution", name)
 	return {"success": True}
 
@@ -335,6 +405,7 @@ def delete_contribution(name: str):
 @frappe.whitelist()
 def get_batch_contributions(batch: str) -> list:
 	"""Get all contributions in a batch with details."""
+	check_batch_permission(batch, "read")
 	contributions = frappe.get_all(
 		"Wiki Contribution",
 		filters={"batch": batch},
@@ -354,6 +425,7 @@ def get_batch_contributions(batch: str) -> list:
 @frappe.whitelist()
 def get_contribution_diff(name: str) -> dict:
 	"""Get the diff for an edit contribution."""
+	check_contribution_permission(name, "read")
 	contrib = frappe.get_doc("Wiki Contribution", name)
 	return contrib.get_diff()
 

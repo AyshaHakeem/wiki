@@ -153,6 +153,8 @@ watch(() => props.pageId, async (newPageId) => {
 
 watch(() => props.spaceId, async (newSpaceId) => {
     if (newSpaceId && isContributionMode.value) {
+        // Clear shared state immediately to prevent stale data from prior space
+        currentBatch.value = null;
         await initBatch();
         await loadContributions();
         findCurrentPageContribution();

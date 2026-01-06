@@ -160,6 +160,16 @@ watch(() => props.contributionId, async (newId) => {
     }
 });
 
+watch(() => props.spaceId, async (newSpaceId) => {
+    if (newSpaceId) {
+        // Clear shared state immediately to prevent stale data from prior space
+        currentBatch.value = null;
+        await initBatch();
+        await loadContributions();
+        await loadContribution();
+    }
+});
+
 const editorContent = computed(() => {
     return contribution.value?.proposed_content || '';
 });

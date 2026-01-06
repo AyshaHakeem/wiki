@@ -318,48 +318,53 @@ function getStatusTheme(status) {
 	}
 }
 
+const OPERATION_CONFIG = {
+	create: {
+		icon: LucidePlus,
+		iconClass: 'bg-green-100 text-green-600',
+		theme: 'green',
+		label: __('New'),
+	},
+	edit: {
+		icon: LucidePencil,
+		iconClass: 'bg-blue-100 text-blue-600',
+		theme: 'blue',
+		label: __('Edit'),
+	},
+	delete: {
+		icon: LucideTrash2,
+		iconClass: 'bg-red-100 text-red-600',
+		theme: 'red',
+		label: __('Delete'),
+	},
+	move: {
+		icon: LucideMove,
+		iconClass: 'bg-purple-100 text-purple-600',
+		theme: 'purple',
+		label: __('Move'),
+	},
+	reorder: {
+		icon: LucideArrowUpDown,
+		iconClass: 'bg-gray-100 text-gray-600',
+		theme: 'gray',
+		label: __('Reorder'),
+	},
+};
+
 function getOperationIcon(operation) {
-	switch (operation) {
-		case 'create': return LucidePlus;
-		case 'edit': return LucidePencil;
-		case 'delete': return LucideTrash2;
-		case 'move': return LucideMove;
-		case 'reorder': return LucideArrowUpDown;
-		default: return LucideFileText;
-	}
+	return OPERATION_CONFIG[operation]?.icon || LucideFileText;
 }
 
 function getOperationIconClass(operation) {
-	switch (operation) {
-		case 'create': return 'bg-green-100 text-green-600';
-		case 'edit': return 'bg-blue-100 text-blue-600';
-		case 'delete': return 'bg-red-100 text-red-600';
-		case 'move': return 'bg-purple-100 text-purple-600';
-		case 'reorder': return 'bg-gray-100 text-gray-600';
-		default: return 'bg-gray-100 text-gray-600';
-	}
+	return OPERATION_CONFIG[operation]?.iconClass || 'bg-gray-100 text-gray-600';
 }
 
 function getOperationTheme(operation) {
-	switch (operation) {
-		case 'create': return 'green';
-		case 'edit': return 'blue';
-		case 'delete': return 'red';
-		case 'move': return 'purple';
-		case 'reorder': return 'gray';
-		default: return 'gray';
-	}
+	return OPERATION_CONFIG[operation]?.theme || 'gray';
 }
 
 function getOperationLabel(operation) {
-	switch (operation) {
-		case 'create': return __('New');
-		case 'edit': return __('Edit');
-		case 'delete': return __('Delete');
-		case 'move': return __('Move');
-		case 'reorder': return __('Reorder');
-		default: return operation;
-	}
+	return OPERATION_CONFIG[operation]?.label || operation;
 }
 
 function getContributionTitle(contrib) {

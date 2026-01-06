@@ -19,10 +19,38 @@ def get_my_contribution_batches() -> list[dict]:
 		order_by="modified desc",
 	)
 
-	# Enrich with wiki space name and contribution count
+	if not batches:
+		return batches
+
+	# Get all wiki space names in one query
+	space_ids = list({b["wiki_space"] for b in batches})
+	space_names = dict(
+		frappe.db.get_all(
+			"Wiki Space",
+			filters={"name": ("in", space_ids)},
+			fields=["name", "space_name"],
+			as_list=True,
+		)
+	)
+
+	# Get contribution counts in one query
+	batch_names = [b["name"] for b in batches]
+	contribution_counts = frappe.db.sql(
+		"""
+		SELECT batch, COUNT(*) as count
+		FROM `tabWiki Contribution`
+		WHERE batch IN %s
+		GROUP BY batch
+		""",
+		[batch_names],
+		as_dict=True,
+	)
+	counts_map = {c["batch"]: c["count"] for c in contribution_counts}
+
+	# Enrich batches
 	for batch in batches:
-		batch["wiki_space_name"] = frappe.db.get_value("Wiki Space", batch["wiki_space"], "space_name")
-		batch["contribution_count"] = frappe.db.count("Wiki Contribution", {"batch": batch["name"]})
+		batch["wiki_space_name"] = space_names.get(batch["wiki_space"])
+		batch["contribution_count"] = counts_map.get(batch["name"], 0)
 
 	return batches
 
@@ -48,20 +76,57 @@ def get_pending_reviews() -> list[dict]:
 		order_by="submitted_at asc",
 	)
 
-	# Enrich with additional info
-	for batch in batches:
-		batch["wiki_space_name"] = frappe.db.get_value("Wiki Space", batch["wiki_space"], "space_name")
-		batch["contribution_count"] = frappe.db.count("Wiki Contribution", {"batch": batch["name"]})
-		# Get contributor info
-		contributor = frappe.db.get_value(
-			"User",
-			batch["contributor"],
-			["full_name", "user_image"],
+	if not batches:
+		return batches
+
+	# Collect IDs for bulk queries
+	space_ids = list({b["wiki_space"] for b in batches if b.get("wiki_space")})
+	batch_names = [b["name"] for b in batches]
+	contributor_ids = list({b["contributor"] for b in batches if b.get("contributor")})
+
+	# Bulk fetch wiki space names
+	space_name_map = {}
+	if space_ids:
+		spaces = frappe.get_all(
+			"Wiki Space",
+			filters={"name": ("in", space_ids)},
+			fields=["name", "space_name"],
+		)
+		space_name_map = {s["name"]: s["space_name"] for s in spaces}
+
+	# Bulk fetch contribution counts
+	contribution_count_map = {}
+	if batch_names:
+		counts = frappe.db.sql(
+			"""
+			SELECT batch, COUNT(*) as contribution_count
+			FROM `tabWiki Contribution`
+			WHERE batch IN %s
+			GROUP BY batch
+			""",
+			(batch_names,),
 			as_dict=True,
 		)
+		contribution_count_map = {c["batch"]: c["contribution_count"] for c in counts}
+
+	# Bulk fetch contributor info
+	contributor_map = {}
+	if contributor_ids:
+		contributors = frappe.get_all(
+			"User",
+			filters={"name": ("in", contributor_ids)},
+			fields=["name", "full_name", "user_image"],
+		)
+		contributor_map = {c["name"]: c for c in contributors}
+
+	# Enrich batches from lookup maps
+	for batch in batches:
+		batch["wiki_space_name"] = space_name_map.get(batch.get("wiki_space"))
+		batch["contribution_count"] = contribution_count_map.get(batch["name"], 0)
+		contributor = contributor_map.get(batch.get("contributor"))
 		if contributor:
-			batch["contributor_name"] = contributor.full_name
-			batch["contributor_image"] = contributor.user_image
+			batch["contributor_name"] = contributor["full_name"]
+			batch["contributor_image"] = contributor["user_image"]
 
 	return batches
 

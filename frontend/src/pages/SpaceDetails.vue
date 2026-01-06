@@ -102,7 +102,7 @@ import { useRoute } from 'vue-router';
 import { createDocumentResource, createResource, Button, Dialog, Switch } from 'frappe-ui';
 import WikiDocumentList from '../components/WikiDocumentList.vue';
 import { useSidebarResize } from '../composables/useSidebarResize';
-import { useContributionMode } from '../composables/useContributionMode';
+import { useContributionMode, currentBatch } from '../composables/useContributionMode';
 
 const props = defineProps({
     spaceId: {
@@ -146,6 +146,8 @@ watch(() => space.doc, (doc) => {
 
 watch(() => space.doc, async (doc) => {
     if (doc && isContributionMode.value) {
+        // Clear shared state immediately to prevent stale data from prior space
+        currentBatch.value = null;
         await initBatch();
         await loadContributions();
     }
@@ -196,6 +198,22 @@ const mergedTreeData = computed(() => {
     };
     buildNodeMap(mergedTree.children || []);
 
+    const applySiblingsOrder = (siblingsOrderJson, parentContainer) => {
+        if (!siblingsOrderJson || !parentContainer) return;
+        try {
+            const siblingsOrder = JSON.parse(siblingsOrderJson);
+            for (let i = 0; i < siblingsOrder.length; i++) {
+                const siblingName = siblingsOrder[i];
+                const siblingNode = nodeMap.get(siblingName);
+                if (siblingNode && parentContainer.includes(siblingNode)) {
+                    siblingNode._draftSortOrder = i;
+                }
+            }
+        } catch (e) {
+            console.error('Failed to parse siblings_order:', e);
+        }
+    };
+
     for (const contrib of contributions) {
         if (contrib.operation === 'create') {
             const newNode = {
@@ -224,20 +242,7 @@ const mergedTreeData = computed(() => {
             }
             nodeMap.set(contrib.temp_id, newNode);
 
-            if (contrib.siblings_order && parentContainer) {
-                try {
-                    const siblingsOrder = JSON.parse(contrib.siblings_order);
-                    for (let i = 0; i < siblingsOrder.length; i++) {
-                        const siblingName = siblingsOrder[i];
-                        const siblingNode = nodeMap.get(siblingName);
-                        if (siblingNode && parentContainer.includes(siblingNode)) {
-                            siblingNode._draftSortOrder = i;
-                        }
-                    }
-                } catch (e) {
-                    console.error('Failed to parse siblings_order:', e);
-                }
-            }
+            applySiblingsOrder(contrib.siblings_order, parentContainer);
 
         } else if (contrib.operation === 'edit') {
             const node = nodeMap.get(contrib.target_document);
@@ -296,22 +301,8 @@ const mergedTreeData = computed(() => {
                 node._contribution = contrib.name;
                 node._draftSortOrder = contrib.proposed_sort_order ?? contrib.new_sort_order;
 
-                if (contrib.siblings_order) {
-                    try {
-                        const siblingsOrder = JSON.parse(contrib.siblings_order);
-                        const parentContainer = node._parent?.children || mergedTree.children;
-
-                        for (let i = 0; i < siblingsOrder.length; i++) {
-                            const siblingName = siblingsOrder[i];
-                            const siblingNode = nodeMap.get(siblingName);
-                            if (siblingNode && parentContainer.includes(siblingNode)) {
-                                siblingNode._draftSortOrder = i;
-                            }
-                        }
-                    } catch (e) {
-                        console.error('Failed to parse siblings_order:', e);
-                    }
-                }
+                const parentContainer = node._parent?.children || mergedTree.children;
+                applySiblingsOrder(contrib.siblings_order, parentContainer);
             }
         }
     }
