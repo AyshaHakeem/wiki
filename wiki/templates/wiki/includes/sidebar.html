@@ -6,7 +6,7 @@
      :style="isCollapsed ? 'width: 0; border-right-width: 0;' : 'width: 18rem;'">
 
     <!-- Scrollable Navigation -->
-    <nav class="py-2 flex-1 overflow-y-auto">
+    <nav class="px-2 py-2 flex-1 overflow-y-auto">
         {{ render_wiki_tree(nested_tree, current_route=doc.route if doc else '') }}
     </nav>
 

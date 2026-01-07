@@ -169,7 +169,7 @@
         {% endif %}
 
         <!-- Bottom Sheet Navigation -->
-        <nav class="py-2 flex-1 overflow-y-auto" @click="handleNavClick($event)">
+        <nav class="px-2 py-2 flex-1 overflow-y-auto" @click="handleNavClick($event)">
             {{ render_wiki_tree(nested_tree, current_route=doc.route if doc else '') }}
         </nav>
 
