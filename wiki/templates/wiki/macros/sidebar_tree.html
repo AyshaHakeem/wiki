@@ -7,6 +7,7 @@
                         {# Group/folder item #}
                         <button class="wiki-item-content group w-full flex items-center h-7 rounded px-2 text-[var(--ink-gray-7)] transition-all duration-200 cursor-pointer hover:bg-[var(--surface-gray-2)]"
                                 @click="toggleNode('{{ node.name }}')"
+                                title="{{ node.title }}"
                                 data-route="{{ node.route }}"
                                 data-node-id="{{ node.name }}">
                             {# Triangle chevron that rotates 90° when expanded #}
@@ -24,6 +25,7 @@
                            @mouseenter="$store.navigation.prefetch('{{ node.route }}')"
                            class="wiki-item-content wiki-link group flex items-center h-7 rounded px-2 text-[var(--ink-gray-7)] no-underline transition-all duration-200"
                            :class="$store.navigation.currentRoute === '{{ node.route }}' ? 'bg-[var(--surface-selected)] shadow-sm text-[var(--ink-gray-9)]' : 'hover:bg-[var(--surface-gray-2)]'"
+                           title="{{ node.title }}"
                            data-route="{{ node.route }}"
                            data-node-id="{{ node.name }}">
                             <span class="wiki-title text-sm truncate {{ 'pl-[18px]' if level == 0 else '' }}">{{ node.title }}</span>
