@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col gap-4 p-4">
+  <div class="flex flex-col gap-4 p-4 h-full">
     <div class="flex items-center justify-between">
       <h2 class="text-xl font-semibold text-ink-gray-9">{{ __('Wiki Spaces') }}</h2>
       <Button v-if="isManager" variant="solid" @click="showCreateDialog = true">
@@ -11,7 +11,7 @@
     </div>
 
     <ListView
-      class="h-[calc(100vh-200px)]"
+      class="h-full"
       :columns="columns"
       :rows="spaces.data || []"
       :options="{
