@@ -1,4 +1,98 @@
 @theme {
+    /* ==========================================
+       FRAPPE UI DESIGN SYSTEM - Tailwind 4
+       ========================================== */
+
+    /* Font Family - Override Tailwind's default for prose/typography */
+    --font-sans: "InterVar", ui-sans-serif, system-ui, sans-serif;
+
+    /* Border Radius */
+    --radius-none: 0px;
+    --radius-sm: 0.25rem;
+    --radius: 0.5rem;
+    --radius-md: 0.625rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.25rem;
+    --radius-full: 9999px;
+
+    /* Box Shadows */
+    --shadow-sm: 0px 1px 2px rgba(0, 0, 0, 0.1);
+    --shadow: 0px 0px 1px rgba(0, 0, 0, 0.45), 0px 1px 2px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0px 0px 1px rgba(0, 0, 0, 0.12), 0px 0.5px 2px rgba(0, 0, 0, 0.15), 0px 2px 3px rgba(0, 0, 0, 0.16);
+    --shadow-lg: 0px 0px 1px rgba(0, 0, 0, 0.35), 0px 6px 8px -4px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0px 0px 1px rgba(0, 0, 0, 0.19), 0px 1px 2px rgba(0, 0, 0, 0.07), 0px 6px 15px -5px rgba(0, 0, 0, 0.11);
+    --shadow-2xl: 0px 0px 1px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.05), 0px 10px 24px -3px rgba(0, 0, 0, 0.1);
+    --shadow-none: none;
+
+    /* Font Sizes - Frappe UI values (overrides Tailwind defaults)
+       Using --text-* naming to properly override Tailwind 4 utilities */
+    --text-2xs: 11px;
+    --text-2xs--line-height: 1.15;
+    --text-2xs--letter-spacing: 0.01em;
+    --text-2xs--font-weight: 420;
+
+    --text-xs: 12px;
+    --text-xs--line-height: 1.15;
+    --text-xs--letter-spacing: 0.02em;
+    --text-xs--font-weight: 420;
+
+    --text-sm: 13px;
+    --text-sm--line-height: 1.15;
+    --text-sm--letter-spacing: 0.02em;
+    --text-sm--font-weight: 420;
+
+    --text-base: 14px;
+    --text-base--line-height: 1.6;
+    --text-base--letter-spacing: 0.02em;
+    --text-base--font-weight: 420;
+
+    --text-lg: 16px;
+    --text-lg--line-height: 1.5;
+    --text-lg--letter-spacing: 0.02em;
+    --text-lg--font-weight: 400;
+
+    --text-xl: 18px;
+    --text-xl--line-height: 1.42;
+    --text-xl--letter-spacing: 0.01em;
+    --text-xl--font-weight: 400;
+
+    --text-2xl: 20px;
+    --text-2xl--line-height: 1.38;
+    --text-2xl--letter-spacing: 0.01em;
+    --text-2xl--font-weight: 400;
+
+    --text-3xl: 24px;
+    --text-3xl--line-height: 1.2;
+    --text-3xl--letter-spacing: 0.005em;
+    --text-3xl--font-weight: 400;
+
+    /* Extended Spacing */
+    --spacing-4_5: 1.125rem;
+    --spacing-5_5: 1.375rem;
+    --spacing-6_5: 1.625rem;
+    --spacing-7_5: 1.875rem;
+    --spacing-8_5: 2.125rem;
+    --spacing-9_5: 2.375rem;
+    --spacing-10_5: 2.625rem;
+    --spacing-11_5: 2.875rem;
+    --spacing-12_5: 3.125rem;
+    --spacing-13: 3.25rem;
+    --spacing-13_5: 3.375rem;
+    --spacing-14_5: 3.625rem;
+    --spacing-15: 3.75rem;
+    --spacing-15_5: 3.875rem;
+
+    /* Extended Widths */
+    --width-112: 28rem;
+    --width-wizard: 650px;
+
+    /* Breakpoints */
+    --breakpoint-sm: 640px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 1024px;
+    --breakpoint-xl: 1280px;
+
     /* Frappe UI Color Palette - Light Mode Base Colors */
     --color-gray-50: #F8F8F8;
     --color-gray-100: #F3F3F3;
@@ -299,4 +393,100 @@
     --ink-pink-1: #E359AB;
     --ink-violet-1: #9D7CEA;
     --ink-blue-link: #1580D8;
+}
+
+/* ==========================================
+   GLOBAL BASE STYLES
+   ========================================== */
+
+/* Font & Typography Base */
+html {
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-optical-sizing: auto;
+}
+
+html, body, button, p, span, div {
+    font-variation-settings: 'opsz' 24;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Native Select Styling */
+select {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="%237C7C7C" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" aria-hidden="true" viewBox="0 0 24 24" ><path d="m6 9 6 6 6-6" /></svg>');
+    background-size: 1.13em;
+    background-position: right 0.44rem center;
+}
+
+/* ==========================================
+   FORM COMPONENT STYLES
+   ========================================== */
+
+.form-input,
+.form-textarea,
+.form-select {
+    height: 1.75rem;
+    border-radius: 0.5rem;
+    border-width: 1px;
+    border-color: var(--surface-gray-2);
+    background-color: var(--surface-gray-2);
+    padding: 0.375rem 0.5rem;
+    font-size: 14px;
+    color: var(--ink-gray-8);
+    transition-property: color, background-color, border-color;
+    transition-duration: 150ms;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder,
+.form-select::placeholder {
+    color: var(--ink-gray-4);
+}
+
+.form-input:hover,
+.form-textarea:hover,
+.form-select:hover {
+    border-color: var(--outline-gray-modals);
+    background-color: var(--surface-gray-3);
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+    border-color: var(--outline-gray-4);
+    background-color: var(--surface-white);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    outline: none;
+}
+
+.form-input:focus-visible,
+.form-textarea:focus-visible,
+.form-select:focus-visible {
+    outline: 2px solid var(--outline-gray-3);
+    outline-offset: 0;
+}
+
+.form-checkbox {
+    border-radius: 0.375rem;
+    background-color: var(--surface-gray-2);
+    color: var(--ink-blue-2);
+}
+
+.form-checkbox:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.form-checkbox:focus-visible {
+    outline: 1px solid var(--outline-gray-3);
+}
+
+/* Dark mode checkbox checkmark */
+[data-theme='dark'] [type='checkbox']:checked {
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='%230F0F0F' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+}
+
+/* Dark mode image filter */
+[data-theme='dark'] img {
+    filter: brightness(0.8) contrast(1.2);
 }

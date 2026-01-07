@@ -11,6 +11,9 @@
 .prose {
   overflow-wrap: break-word;
   word-wrap: break-word;
+  font-family: var(--font-sans);
+
+  /* Color variables - these ARE CSS variables in typography plugin */
   --tw-prose-body: var(--ink-gray-8);
   --tw-prose-headings: var(--ink-gray-9);
   --tw-prose-lead: var(--ink-gray-6);
@@ -27,6 +30,59 @@
   --tw-prose-pre-bg: var(--surface-gray-7);
   --tw-prose-th-borders: var(--outline-gray-2);
   --tw-prose-td-borders: var(--outline-gray-1);
+}
+
+/* prose-sm base typography - Frappe UI values */
+.prose-sm {
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 420;
+  letter-spacing: 0.02em;
+}
+
+/* Heading sizes for prose-sm - Frappe UI values (using :where for low specificity) */
+.prose-sm :where(h1) {
+  font-size: calc(20 / 14 * 1em); /* 20px */
+  font-weight: 600;
+}
+
+.prose-sm :where(h2) {
+  font-size: calc(20 / 14 * 1em); /* 18px */
+  font-weight: 700;
+}
+
+.prose-sm :where(h3) {
+  font-size: calc(16 / 14 * 1em); /* 16px */
+  font-weight: 600;
+}
+
+.prose-sm :where(h4) {
+  font-size: calc(14 / 14 * 1em); /* 14px */
+  font-weight: 600;
+}
+
+.prose-sm :where(h5) {
+  font-size: calc(13 / 14 * 1em); /* 13px */
+  font-weight: 600;
+}
+
+/* Paragraph margins for prose-sm - tighter than default */
+.prose-sm :where(p) {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* List margins for prose-sm - matching frappe-ui */
+.prose-sm :where(ul > li),
+.prose-sm :where(ol > li) {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-sm :where(ul > li > p),
+.prose-sm :where(ol > li > p) {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 /* Link styling - underline to distinguish gray links */
