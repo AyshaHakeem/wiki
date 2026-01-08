@@ -125,7 +125,7 @@ export const SLASH_COMMANDS = [
 				.deleteRange(range)
 				.insertContent({
 					type: 'calloutBlock',
-					attrs: { type: 'note', title: '', content: 'Your note here...' },
+					attrs: { type: 'note', title: '', content: '' },
 				})
 				.run();
 		},
@@ -141,7 +141,7 @@ export const SLASH_COMMANDS = [
 				.deleteRange(range)
 				.insertContent({
 					type: 'calloutBlock',
-					attrs: { type: 'tip', title: '', content: 'Your tip here...' },
+					attrs: { type: 'tip', title: '', content: '' },
 				})
 				.run();
 		},
@@ -160,7 +160,7 @@ export const SLASH_COMMANDS = [
 					attrs: {
 						type: 'caution',
 						title: '',
-						content: 'Your warning here...',
+						content: '',
 					},
 				})
 				.run();
@@ -180,7 +180,7 @@ export const SLASH_COMMANDS = [
 					attrs: {
 						type: 'danger',
 						title: '',
-						content: 'Important warning here...',
+						content: '',
 					},
 				})
 				.run();
