@@ -59,7 +59,7 @@
                 </div>
             </div>
 
-            <div class="flex-1 overflow-auto px-6 pb-6">
+            <div class="flex-1 overflow-auto px-6 pb-6 mt-4">
                 <WikiEditor v-if="editorKey" :key="editorKey" ref="editorRef" :content="editorContent" :saving="isSaving" @save="saveContent" />
             </div>
         </div>
