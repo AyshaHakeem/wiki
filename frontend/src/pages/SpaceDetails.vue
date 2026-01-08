@@ -73,6 +73,21 @@
                     <div class="flex items-center justify-between p-3 rounded-lg border border-outline-gray-2 bg-surface-gray-1">
                         <div class="flex-1 mr-4">
                             <p class="text-sm font-medium text-ink-gray-9">
+                                {{ __('Published') }}
+                            </p>
+                            <p class="text-xs text-ink-gray-5 mt-0.5">
+                                {{ __('Make this wiki space publicly accessible') }}
+                            </p>
+                        </div>
+                        <Switch
+                            v-model="isPublished"
+                            :disabled="updatingPublishSetting"
+                            @update:modelValue="updatePublishSetting"
+                        />
+                    </div>
+                    <div class="flex items-center justify-between p-3 rounded-lg border border-outline-gray-2 bg-surface-gray-1">
+                        <div class="flex-1 mr-4">
+                            <p class="text-sm font-medium text-ink-gray-9">
                                 {{ __('Enable Feedback Collection') }}
                             </p>
                             <p class="text-xs text-ink-gray-5 mt-0.5">
@@ -126,6 +141,9 @@ const showSettingsDialog = ref(false);
 const enableFeedbackCollection = ref(false);
 const updatingFeedbackSetting = ref(false);
 
+const isPublished = ref(true);
+const updatingPublishSetting = ref(false);
+
 const sidebarRef = ref(null);
 const { sidebarWidth, sidebarResizing, startResize } = useSidebarResize(sidebarRef);
 
@@ -141,6 +159,7 @@ const space = createDocumentResource({
 watch(() => space.doc, (doc) => {
     if (doc) {
         enableFeedbackCollection.value = Boolean(doc.enable_feedback_collection);
+        isPublished.value = Boolean(doc.is_published);
     }
 }, { immediate: true });
 
@@ -164,6 +183,20 @@ async function updateFeedbackSetting(value) {
         enableFeedbackCollection.value = !value;
     } finally {
         updatingFeedbackSetting.value = false;
+    }
+}
+
+async function updatePublishSetting(value) {
+    updatingPublishSetting.value = true;
+    try {
+        await space.setValue.submit({
+            is_published: value ? 1 : 0
+        });
+    } catch (error) {
+        console.error('Failed to update publish setting:', error);
+        isPublished.value = !value;
+    } finally {
+        updatingPublishSetting.value = false;
     }
 }
 

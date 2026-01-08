@@ -136,7 +136,7 @@ function handleRouteInput(value) {
 
 const columns = [
   {
-    label: __("Space Name"),
+    label: __("Name"),
     key: "space_name",
     width: 2,
   },
