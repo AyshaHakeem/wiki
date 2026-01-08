@@ -26,7 +26,7 @@ def _build_wiki_tree_for_api(documents: list[str]) -> list[dict]:
 	"""Build a nested tree structure from a list of Wiki Document names."""
 	wiki_documents = frappe.db.get_all(
 		"Wiki Document",
-		fields=["name", "title", "is_group", "parent_wiki_document", "route", "is_published"],
+		fields=["name", "title", "is_group", "parent_wiki_document", "route", "is_published", "sort_order"],
 		filters={"name": ("in", documents)},
 		order_by="lft asc",
 	)
@@ -40,6 +40,15 @@ def _build_wiki_tree_for_api(documents: list[str]) -> list[dict]:
 			doc_map[parent_name]["children"].append(doc_map[doc["name"]])
 		else:
 			root_nodes.append(doc_map[doc["name"]])
+
+	# Sort children by sort_order at each level (lft is used for tree structure, sort_order for display)
+	def sort_children(nodes):
+		nodes.sort(key=lambda x: (x.get("sort_order") or 0, x["name"]))
+		for node in nodes:
+			if node["children"]:
+				sort_children(node["children"])
+
+	sort_children(root_nodes)
 
 	return root_nodes
 
@@ -84,20 +93,53 @@ def reorder_wiki_documents(
 		return _create_reorder_contribution(doc, new_parent, new_index, siblings_list, batch)
 
 	# Direct reorder for users with write permission
+	parent_changed = doc.parent_wiki_document != new_parent
+
 	# Update parent if changed
-	if doc.parent_wiki_document != new_parent:
+	if parent_changed:
 		doc.parent_wiki_document = new_parent
 		doc.save()
 
-	# Update the sort_order for all siblings based on the new order
-	for idx, sibling_name in enumerate(siblings_list):
-		# Skip temp items (drafts) - they don't exist in the database
-		if sibling_name.startswith("temp_"):
-			continue
-		frappe.db.set_value("Wiki Document", sibling_name, "sort_order", idx, update_modified=False)
+	# Batch update sort_order for all siblings
+	_batch_update_sort_order(siblings_list)
 
-	# Rebuild the nested set tree with custom ordering by idx
-	rebuild_wiki_tree()
+	# Only rebuild the tree if parent changed (structural change)
+	# For simple reorders, sort_order is sufficient
+	if parent_changed:
+		rebuild_wiki_tree()
+
+	return {"is_contribution": False}
+
+
+def _batch_update_sort_order(siblings: list[str]) -> None:
+	"""Batch update sort_order for siblings in a single query."""
+	# Filter out temp items (drafts) - they don't exist in the database
+	valid_siblings = [(idx, name) for idx, name in enumerate(siblings) if not name.startswith("temp_")]
+
+	if not valid_siblings:
+		return
+
+	# Build a single UPDATE query with CASE WHEN
+	case_parts = []
+	names = []
+	for idx, name in valid_siblings:
+		case_parts.append(f"WHEN %s THEN {idx}")
+		names.append(name)
+
+	if not names:
+		return
+
+	case_sql = " ".join(case_parts)
+	placeholders = ", ".join(["%s"] * len(names))
+
+	frappe.db.sql(
+		f"""
+		UPDATE `tabWiki Document`
+		SET sort_order = CASE name {case_sql} END
+		WHERE name IN ({placeholders})
+		""",
+		tuple(names + names),
+	)
 
 
 def _create_reorder_contribution(
