@@ -11,20 +11,25 @@
     </nav>
 </div>
 
-<!-- Sidebar Toggle Button (always visible, positioned at sidebar edge) -->
-<div x-data
-     class="hidden xl:block fixed z-40 bottom-6 transition-[left] duration-300 ease-in-out"
-     :style="$store.sidebar.isCollapsed ? 'left: 1rem;' : 'left: calc(18rem + 0.5rem);'">
-    <button @click="$store.sidebar.toggle()"
-            class="inline-flex items-center gap-1 px-1.5 py-1 rounded-full bg-[var(--surface-gray-2)] ring-1 ring-inset ring-[var(--outline-gray-2)] hover:bg-[var(--surface-gray-3)] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink-gray-4)]">
-        <svg class="w-4 h-4 text-[var(--ink-gray-5)] transition-transform duration-300"
-             :class="$store.sidebar.isCollapsed ? '' : 'rotate-180'"
-             xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m6 17 5-5-5-5"/>
-            <path d="m13 17 5-5-5-5"/>
-        </svg>
-        <kbd class="text-xs text-[var(--ink-gray-4)] font-sans">S</kbd>
-    </button>
+<!-- Sidebar Toggle Button (appears on hover at sidebar edge, always visible when collapsed) -->
+<div x-data="{ hovered: false }"
+     class="hidden xl:flex items-center fixed z-40 top-[53px] h-[calc(100vh-53px)] transition-[left] duration-300 ease-in-out"
+     :style="$store.sidebar.isCollapsed ? 'left: 0.5rem;' : 'left: calc(18rem - 0.25rem);'"
+     @mouseenter="hovered = true"
+     @mouseleave="hovered = false">
+    <!-- Hover zone -->
+    <div class="w-8 h-full flex items-center justify-center">
+        <button @click="$store.sidebar.toggle()"
+                class="inline-flex items-center justify-center p-1 transition-all duration-200 cursor-pointer focus:outline-none"
+                :class="$store.sidebar.isCollapsed ? 'opacity-100' : (hovered ? 'opacity-100 scale-100' : 'opacity-0 scale-75')">
+            <svg class="w-4 h-4 text-[var(--ink-gray-4)] hover:text-[var(--ink-gray-6)] transition-colors duration-200"
+                 :class="$store.sidebar.isCollapsed ? '' : 'rotate-180'"
+                 xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m6 17 5-5-5-5"/>
+                <path d="m13 17 5-5-5-5"/>
+            </svg>
+        </button>
+    </div>
 </div>
 
 <script>
