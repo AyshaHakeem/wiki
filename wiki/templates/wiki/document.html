@@ -15,9 +15,9 @@
     <article class="w-full min-w-0 transition-[max-width,opacity] duration-300 xl:max-w-[80ch] mx-auto"
              :class="{ 'opacity-50': $store.navigation.loading, 'xl:!max-w-[100ch]': $store.sidebar?.isCollapsed }">
         <!-- Page Header -->
-        <header class="py-6 mb-8">
+        <header class="py-6 mb-6 border-b border-[var(--outline-gray-1)]">
             <!-- Mobile: Edit above title -->
-            <div class="flex justify-start mb-8 sm:hidden">
+            <div class="flex justify-start mb-4 sm:hidden">
                 {{ page_actions_dropdown(edit_href=doc.get_edit_link(), edit_text="Edit") }}
                     {{ page_action_item(text="Copy page", description="Copy page as Markdown for LLMs", icon="clipboard", click="copyMarkdown(); open = false") }}
                     {{ page_action_item(text="Open in ChatGPT", description="Ask ChatGPT about this page", icon="openai", href_expr="getAIUrl('openai')", target="_blank") }}
@@ -37,6 +37,7 @@
                 </div>
             </div>
         </header>
+
 
         <!-- Page Content -->
         <div class="prose prose-sm max-w-none" id="wiki-content">
