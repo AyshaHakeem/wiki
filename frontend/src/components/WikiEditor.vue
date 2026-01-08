@@ -281,17 +281,12 @@ function createSlashCommandsSuggestion() {
                         app: null,
                     };
 
-                    // Mount the SlashCommandsList component
-                    import('vue').then(({ createApp, h }) => {
+                    // Mount the SlashCommandsList component directly
+                    import('vue').then(({ createApp }) => {
                         if (isDestroyed) return;
-                        const app = createApp({
-                            render() {
-                                return h(SlashCommandsList, {
-                                    items: props.items,
-                                    command: props.command,
-                                    ref: 'listRef',
-                                });
-                            },
+                        const app = createApp(SlashCommandsList, {
+                            items: props.items,
+                            command: props.command,
                         });
                         component.app = app;
                         component.vm = app.mount(container);
@@ -318,19 +313,15 @@ function createSlashCommandsSuggestion() {
 
                     // Re-render with new items
                     if (component?.app) {
-                        import('vue').then(({ createApp, h }) => {
+                        import('vue').then(({ createApp }) => {
                             if (isDestroyed) return;
                             // Unmount old app
                             component.app.unmount();
                             const container = component.element;
                             // Create new app with updated props
-                            const app = createApp({
-                                render() {
-                                    return h(SlashCommandsList, {
-                                        items: props.items,
-                                        command: props.command,
-                                    });
-                                },
+                            const app = createApp(SlashCommandsList, {
+                                items: props.items,
+                                command: props.command,
                             });
                             component.app = app;
                             component.vm = app.mount(container);
@@ -351,8 +342,8 @@ function createSlashCommandsSuggestion() {
                     }
 
                     // Let the component handle arrow keys and enter
-                    if (component?.vm?.$refs?.listRef?.onKeyDown) {
-                        return component.vm.$refs.listRef.onKeyDown(props.event);
+                    if (component?.vm?.onKeyDown) {
+                        return component.vm.onKeyDown(props.event);
                     }
 
                     return false;
