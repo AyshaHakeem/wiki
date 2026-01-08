@@ -32,6 +32,7 @@
                 :selected-contribution-id="selectedContributionId"
                 @create="openCreateDialog"
                 @delete="openDeleteDialog"
+                @rename="openRenameDialog"
                 @update="handleTreeUpdate"
             />
         </div>
@@ -96,6 +97,29 @@
                 </div>
             </template>
         </Dialog>
+
+        <Dialog v-model="showRenameDialog">
+            <template #body-title>
+                <h3 class="text-xl font-semibold text-ink-gray-9">
+                    {{ renameNode?.is_group ? __('Rename Group') : __('Change Title') }}
+                </h3>
+            </template>
+            <template #body-content>
+                <div class="space-y-4">
+                    <FormControl v-model="renameTitle" :label="renameNode?.is_group ? __('Name') : __('Title')" type="text"
+                        :placeholder="renameNode?.is_group ? __('Enter group name') : __('Enter page title')" autofocus />
+                </div>
+            </template>
+            <template #actions="{ close }">
+                <div class="flex justify-end gap-2">
+                    <Button variant="outline" @click="close">{{ __('Cancel') }}</Button>
+                    <Button variant="solid" :loading="renameResource.loading"
+                        @click="renameDocument(close)">
+                        {{ __('Save') }}
+                    </Button>
+                </div>
+            </template>
+        </Dialog>
     </div>
 </template>
 
@@ -103,7 +127,7 @@
 import { ref, toRef, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStorage } from '@vueuse/core';
-import { createListResource, createDocumentResource, createResource, toast } from 'frappe-ui';
+import { createListResource, createDocumentResource, createResource, toast, FormControl } from 'frappe-ui';
 import NestedDraggable from './NestedDraggable.vue';
 import { useContributionMode, useContribution, currentBatch } from '@/composables/useContributionMode';
 import LucideFilePlus from '~icons/lucide/file-plus';
@@ -168,6 +192,10 @@ const deleteNode = ref(null);
 const deleteChildCount = ref(0);
 const deleteDocResource = ref(null);
 
+const showRenameDialog = ref(false);
+const renameTitle = ref('');
+const renameNode = ref(null);
+
 const wikiDocuments = createListResource({
     doctype: 'Wiki Document',
     fields: ['name', 'title', 'is_group', 'route', 'is_published', 'parent_wiki_document'],
@@ -207,6 +235,17 @@ const reorderResource = createResource({
 
 const deleteContributionResource = createResource({
     url: 'wiki.frappe_wiki.doctype.wiki_contribution.wiki_contribution.create_contribution',
+});
+
+const renameResource = createResource({
+    url: 'frappe.client.set_value',
+    onSuccess() {
+        toast.success(renameNode.value?.is_group ? __('Group renamed') : __('Title updated'));
+        emit('refresh');
+    },
+    onError(error) {
+        toast.error(error.messages?.[0] || __('Error updating title'));
+    },
 });
 
 function handleTreeUpdate(payload) {
@@ -360,5 +399,27 @@ async function deleteDocumentAsContribution(close) {
         console.error('Error creating delete contribution:', error);
         toast.error(error.messages?.[0] || __('Error creating draft'));
     }
+}
+
+function openRenameDialog(node) {
+    renameNode.value = node;
+    renameTitle.value = node.title || '';
+    showRenameDialog.value = true;
+}
+
+async function renameDocument(close) {
+    if (!renameTitle.value.trim()) {
+        toast.warning(__('Name is required'));
+        return;
+    }
+
+    await renameResource.submit({
+        doctype: 'Wiki Document',
+        name: renameNode.value.name,
+        fieldname: {
+            title: renameTitle.value.trim(),
+        },
+    });
+    close();
 }
 </script>

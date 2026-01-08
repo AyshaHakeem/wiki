@@ -89,6 +89,7 @@
                         :selected-contribution-id="selectedContributionId"
                         @create="(parent, isGroup) => emit('create', parent, isGroup)"
                         @delete="(n) => emit('delete', n)"
+                        @rename="(n) => emit('rename', n)"
                         @update="handleNestedUpdate"
                     />
                 </div>
@@ -140,7 +141,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['create', 'delete', 'update']);
+const emit = defineEmits(['create', 'delete', 'update', 'rename']);
 const router = useRouter();
 
 const localItems = ref([...props.items]);
@@ -271,10 +272,20 @@ function getDropdownOptions(element) {
                     icon: 'folder-plus',
                     onClick: () => emit('create', element.name, true),
                 },
+                {
+                    label: __('Rename'),
+                    icon: 'edit-2',
+                    onClick: () => emit('rename', element),
+                },
             ]);
     }
 
     if (!element.is_group) {
+        options.push({
+            label: __('Change Title'),
+            icon: 'edit-2',
+            onClick: () => emit('rename', element),
+        });
         options.push({
             label: element.is_published ? __('Unpublish') : __('Publish'),
             icon: element.is_published ? 'eye-off' : 'eye',
