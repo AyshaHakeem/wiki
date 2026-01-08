@@ -42,27 +42,27 @@
 
 /* Heading sizes for prose-sm - Frappe UI values (using :where for low specificity) */
 .prose-sm :where(h1) {
-  font-size: calc(20 / 14 * 1em); /* 20px */
+  font-size: calc(20 / 14 * 1em);
   font-weight: 600;
 }
 
 .prose-sm :where(h2) {
-  font-size: calc(20 / 14 * 1em); /* 18px */
-  font-weight: 700;
+  font-size: calc(18 / 14 * 1em);
+  font-weight: 600;
 }
 
 .prose-sm :where(h3) {
-  font-size: calc(16 / 14 * 1em); /* 16px */
+  font-size: calc(16 / 14 * 1em);
   font-weight: 600;
 }
 
 .prose-sm :where(h4) {
-  font-size: calc(14 / 14 * 1em); /* 14px */
+  font-size: calc(14 / 14 * 1em);
   font-weight: 600;
 }
 
 .prose-sm :where(h5) {
-  font-size: calc(13 / 14 * 1em); /* 13px */
+  font-size: calc(13 / 14 * 1em);
   font-weight: 600;
 }
 
