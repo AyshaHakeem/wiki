@@ -9,26 +9,21 @@
     <nav class="px-2 py-2 flex-1 overflow-y-auto">
         {{ render_wiki_tree(nested_tree, current_route=doc.route if doc else '') }}
     </nav>
-
-    <!-- Fixed Footer with Collapse Button -->
-    <div class="p-3 border-t border-[var(--outline-gray-1)] bg-[var(--surface-white)] flex-shrink-0">
-        <button @click="toggleSidebar()"
-                class="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-[var(--ink-gray-5)] hover:text-[var(--ink-gray-9)] hover:bg-[var(--surface-gray-2)] rounded-md transition-colors duration-200 cursor-pointer">
-            {{ render_icon("panel-right-open", "mr-2 text-[var(--ink-gray-6)] transition-transform duration-200") }}
-            <span>Collapse</span>
-            <kbd class="ml-2 text-xs text-[var(--ink-gray-4)] bg-[var(--surface-gray-2)] px-1.5 py-0.5 rounded font-sans">C</kbd>
-        </button>
-    </div>
 </div>
 
-<!-- Collapse/Expand Toggle Button (visible when sidebar is collapsed, only on xl screens) -->
-<div x-show="$store.sidebar.isCollapsed"
-     x-data
-     class="hidden xl:block fixed left-4 bottom-6 z-40 transition-opacity duration-200">
+<!-- Sidebar Toggle Button (always visible, positioned at sidebar edge) -->
+<div x-data
+     class="hidden xl:block fixed z-40 bottom-6 transition-[left] duration-300 ease-in-out"
+     :style="$store.sidebar.isCollapsed ? 'left: 1rem;' : 'left: calc(18rem + 0.5rem);'">
     <button @click="$store.sidebar.toggle()"
-            class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[var(--surface-gray-2)] ring-1 ring-inset ring-[var(--outline-gray-2)] hover:bg-[var(--surface-gray-3)] transition-colors cursor-pointer">
-        {{ render_icon("panel-right-open", "w-4 h-4 text-[var(--ink-gray-5)] rotate-180") }}
-        <kbd class="text-xs text-[var(--ink-gray-4)] font-sans">C</kbd>
+            class="inline-flex items-center gap-1 px-1.5 py-1 rounded-full bg-[var(--surface-gray-2)] ring-1 ring-inset ring-[var(--outline-gray-2)] hover:bg-[var(--surface-gray-3)] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink-gray-4)]">
+        <svg class="w-4 h-4 text-[var(--ink-gray-5)] transition-transform duration-300"
+             :class="$store.sidebar.isCollapsed ? '' : 'rotate-180'"
+             xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 17 5-5-5-5"/>
+            <path d="m13 17 5-5-5-5"/>
+        </svg>
+        <kbd class="text-xs text-[var(--ink-gray-4)] font-sans">S</kbd>
     </button>
 </div>
 
@@ -58,7 +53,7 @@
             }
         });
 
-        // Keyboard shortcut for sidebar collapse (C key)
+        // Keyboard shortcut for sidebar collapse (S key)
         document.addEventListener('keydown', (e) => {
             // Only trigger if not in an input/textarea/contenteditable
             const target = e.target;
@@ -66,7 +61,7 @@
                            target.tagName === 'TEXTAREA' ||
                            target.isContentEditable;
 
-            if (!isInput && e.key.toLowerCase() === 'c' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+            if (!isInput && e.key.toLowerCase() === 's' && !e.metaKey && !e.ctrlKey && !e.altKey) {
                 Alpine.store('sidebar').toggle();
             }
         });
