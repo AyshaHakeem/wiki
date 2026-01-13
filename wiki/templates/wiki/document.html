@@ -40,7 +40,7 @@
 
 
         <!-- Page Content -->
-        <div class="prose prose-sm max-w-none" id="wiki-content">
+        <div class="prose prose-sm max-w-none scroll-smooth" id="wiki-content">
             {{ rendered_content | safe }}
         </div>
 
@@ -77,17 +77,15 @@
             {% endif %}
         </nav>
 
-        <!-- Last Updated -->
-        <div id="wiki-last-updated" class="mt-8 text-sm text-[var(--ink-gray-5)]" title="{{ last_updated_on }}" data-timestamp="{{ last_updated_on }}">
-            Last updated {{ last_updated }}
-        </div>
-
-        <!-- Feedback Widget (Mobile/Tablet only - hidden on xl screens where it shows in TOC sidebar) -->
-        {% if wiki_space and wiki_space.enable_feedback_collection %}
-        <div class="xl:hidden">
+        <!-- Last Updated & Feedback Widget -->
+        <div class="mt-8 flex flex-wrap items-start justify-between gap-4">
+            <div id="wiki-last-updated" class="text-sm text-[var(--ink-gray-5)]" title="{{ last_updated_on }}" data-timestamp="{{ last_updated_on }}">
+                Last updated {{ last_updated }}
+            </div>
+            {% if wiki_space and wiki_space.enable_feedback_collection %}
             {% include "templates/wiki/includes/feedback_widget.html" %}
+            {% endif %}
         </div>
-        {% endif %}
     </article>
 
     {% include "templates/wiki/includes/toc.html" %}
@@ -213,17 +211,6 @@
                 });
             },
 
-            scrollToHeading(id) {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    // Update active immediately for better UX
-                    this.activeId = id;
-                    // Update URL hash without jumping
-                    history.pushState(null, null, `#${id}`);
-                }
-            },
-
             addAnchorLink(heading) {
                 // Skip if anchor already exists
                 if (heading.querySelector('.heading-anchor')) return;
@@ -233,15 +220,6 @@
                 anchor.className = 'heading-anchor';
                 anchor.setAttribute('aria-label', `Link to ${heading.textContent.trim()}`);
                 anchor.textContent = '#';
-
-                const self = this;
-                anchor.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    self.scrollToHeading(heading.id);
-                    // Copy URL to clipboard
-                    navigator.clipboard.writeText(window.location.origin + window.location.pathname + `#${heading.id}`);
-                });
-
                 heading.insertBefore(anchor, heading.firstChild);
             },
 

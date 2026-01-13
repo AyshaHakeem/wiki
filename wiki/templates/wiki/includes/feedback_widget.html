@@ -1,74 +1,75 @@
 <!-- Feedback Widget -->
-<form x-data="feedbackWidget('{{ doc.name }}')" @submit.prevent="submit()" class="mt-8" :class="headings.length > 0 ? 'pt-6 border-t border-[var(--outline-gray-1)]' : ''">
-    <p class="text-sm font-medium text-[var(--ink-gray-7)] mb-3">Was this page helpful?</p>
+<div x-data="feedbackWidget('{{ doc.name }}')" class="flex flex-col items-end">
+    <div class="flex flex-col items-center gap-2">
+        <span class="text-sm text-[var(--ink-gray-5)]">Was this helpful?</span>
 
-    <!-- Reaction Buttons (pill-shaped toggle group) -->
-    {% set reactions = [
-        {"type": "Good", "mouth": '<path d="M8 14s1.5 2 4 2 4-2 4-2"/>'},
-        {"type": "Ok", "mouth": '<line x1="8" y1="15" x2="16" y2="15"/>'},
-        {"type": "Bad", "mouth": '<path d="M16 16s-1.5-2-4-2-4 2-4 2"/>'}
-    ] %}
-    <fieldset class="inline-flex rounded-full bg-[var(--surface-gray-2)] p-1" role="radiogroup" aria-label="Feedback rating">
-        {% for reaction in reactions %}
-        <button type="button"
-                @click="selectFeedback('{{ reaction.type }}')"
-                :disabled="submitted"
-                :class="feedbackType === '{{ reaction.type }}' ? 'bg-[var(--surface-white)] shadow-sm' : 'hover:bg-[var(--surface-gray-4)]'"
-                class="p-2 rounded-full transition-all duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                role="radio"
-                :aria-checked="feedbackType === '{{ reaction.type }}'"
-                aria-label="{{ reaction.type }}">
-            <svg class="w-5 h-5" :class="feedbackType === '{{ reaction.type }}' ? 'text-[var(--ink-gray-9)]' : 'text-[var(--ink-gray-5)]'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                {{ reaction.mouth | safe }}
-                <line x1="9" y1="9" x2="9.01" y2="9"/>
-                <line x1="15" y1="9" x2="15.01" y2="9"/>
-            </svg>
-        </button>
-        {% endfor %}
-    </fieldset>
+        <!-- Reaction Buttons (pill-shaped toggle group) -->
+        {% set reactions = [
+            {"type": "Good", "mouth": '<path d="M8 14s1.5 2 4 2 4-2 4-2"/>'},
+            {"type": "Ok", "mouth": '<line x1="8" y1="15" x2="16" y2="15"/>'},
+            {"type": "Bad", "mouth": '<path d="M16 16s-1.5-2-4-2-4 2-4 2"/>'}
+        ] %}
+        <fieldset class="inline-flex rounded-full bg-[var(--surface-gray-2)] p-0.5" role="radiogroup" aria-label="Feedback rating">
+            {% for reaction in reactions %}
+            <button type="button"
+                    @click="selectFeedback('{{ reaction.type }}')"
+                    :disabled="submitted"
+                    :class="feedbackType === '{{ reaction.type }}' ? 'bg-[var(--surface-white)] shadow-sm' : 'hover:bg-[var(--surface-gray-4)]'"
+                    class="p-1.5 rounded-full transition-all duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                    role="radio"
+                    :aria-checked="feedbackType === '{{ reaction.type }}'"
+                    aria-label="{{ reaction.type }}">
+                <svg class="w-4 h-4" :class="feedbackType === '{{ reaction.type }}' ? 'text-[var(--ink-gray-9)]' : 'text-[var(--ink-gray-5)]'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    {{ reaction.mouth | safe }}
+                    <line x1="9" y1="9" x2="9.01" y2="9"/>
+                    <line x1="15" y1="9" x2="15.01" y2="9"/>
+                </svg>
+            </button>
+            {% endfor %}
+        </fieldset>
+    </div>
 
     <!-- Optional text + Submit (shown after type selected) -->
-    <template x-if="feedbackType">
-        <div class="mt-4" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
-            <div class="relative">
-                <textarea x-ref="feedbackInput"
-                          x-model="comment"
-                          name="feedback"
-                          :disabled="submitted"
-                          placeholder="Anything you'd like to add?"
-                          rows="3"
-                          class="w-full px-3 py-2 pr-24 text-sm rounded-lg border border-[var(--outline-gray-2)] bg-[var(--surface-white)] text-[var(--ink-gray-9)] placeholder-[var(--ink-gray-4)] focus:outline-none focus:ring-2 focus:ring-[var(--outline-gray-3)] resize-none disabled:opacity-60"></textarea>
+    <div x-show="feedbackType" x-cloak
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 -translate-y-1"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         class="mt-2 w-72">
+        <form @submit.prevent="submit()" class="relative">
+            <textarea x-ref="feedbackInput"
+                      x-model="comment"
+                      name="feedback"
+                      :disabled="submitted"
+                      placeholder="Anything you'd like to add?"
+                      rows="3"
+                      class="w-full px-4 py-3 pr-20 text-sm rounded-xl border border-[var(--outline-gray-2)] bg-[var(--surface-white)] text-[var(--ink-gray-9)] placeholder-[var(--ink-gray-4)] focus:outline-none focus:ring-2 focus:ring-[var(--outline-gray-3)] resize-none disabled:opacity-60"></textarea>
 
-                <!-- Submit button OR Thank you message -->
-                <div class="absolute bottom-3 right-3">
-                    <template x-if="!submitted">
-                        <button type="submit"
-                                :disabled="submitting"
-                                class="px-3 py-1 text-sm font-medium rounded-md bg-[var(--surface-gray-3)] text-[var(--ink-gray-7)] hover:bg-[var(--surface-gray-4)] hover:text-[var(--ink-gray-9)] transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                            <span x-show="!submitting">Submit</span>
-                            <span x-show="submitting" class="flex items-center gap-1">
-                                <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                            </span>
-                        </button>
-                    </template>
-                    <template x-if="submitted">
-                        <span class="flex items-center gap-1 text-sm font-medium text-green-600">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M9 12l2 2 4-4"/>
-                            </svg>
-                            Thank you!
-                        </span>
-                    </template>
-                </div>
+            <!-- Submit button OR Thank you message -->
+            <div class="absolute bottom-3 right-3">
+                <button x-show="!submitted"
+                        type="submit"
+                        :disabled="submitting"
+                        class="px-2.5 py-1 text-xs font-medium rounded-sm bg-[var(--surface-gray-3)] text-[var(--ink-gray-7)] hover:bg-[var(--surface-gray-4)] hover:text-[var(--ink-gray-9)] transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span x-show="!submitting">Submit</span>
+                    <span x-show="submitting" class="flex items-center gap-1">
+                        <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </span>
+                </button>
+                <span x-show="submitted" class="flex items-center gap-1 text-xs font-medium text-green-600">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9 12l2 2 4-4"/>
+                    </svg>
+                    Thanks!
+                </span>
             </div>
-        </div>
-    </template>
-</form>
+        </form>
+    </div>
+</div>
 
 <script>
     // Initialize feedback store for external reset capability

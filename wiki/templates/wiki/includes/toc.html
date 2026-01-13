@@ -8,7 +8,6 @@
                     <template x-for="heading in headings" :key="heading.id">
                         <li>
                             <a :href="'#' + heading.id"
-                               @click.prevent="scrollToHeading(heading.id)"
                                :class="activeId === heading.id
                                    ? 'text-[var(--ink-gray-9)] font-medium'
                                    : 'text-[var(--ink-gray-5)] hover:text-[var(--ink-gray-9)]'"
@@ -22,10 +21,6 @@
             </div>
         </template>
     </nav>
-
-    {% if wiki_space and wiki_space.enable_feedback_collection %}
-    {% include "templates/wiki/includes/feedback_widget.html" %}
-    {% endif %}
 </aside>
 
 <script>
