@@ -162,4 +162,121 @@ test.describe('Wiki E2E Tests', () => {
 		// Verify save button is present (indicates edit mode)
 		await expect(page.locator('button:has-text("Save")')).toBeVisible();
 	});
+
+	test('should publish page and view it on public route', async ({ page }) => {
+		// Navigate to wiki and click first space
+		await page.goto('/wiki');
+		await page.waitForLoadState('networkidle');
+
+		const spaceLink = page.locator('a[href*="/wiki/spaces/"]').first();
+		await expect(spaceLink).toBeVisible({ timeout: 5000 });
+		await spaceLink.click();
+		await page.waitForLoadState('networkidle');
+
+		// Create a new page with specific title and content
+		const createFirstPage = page.locator(
+			'button:has-text("Create First Page")',
+		);
+		const newPageButton = page.locator('button[title="New Page"]');
+
+		const pageTitle = `E2E Test Page ${Date.now()}`;
+		const pageContent = `This is test content created by E2E tests at ${new Date().toISOString()}`;
+
+		// Click create button (either "Create First Page" or "New Page")
+		if (await createFirstPage.isVisible({ timeout: 2000 }).catch(() => false)) {
+			await createFirstPage.click();
+		} else {
+			await newPageButton.click();
+		}
+
+		// Fill in page title
+		await page.getByLabel('Title').fill(pageTitle);
+		await page
+			.getByRole('dialog')
+			.getByRole('button', { name: 'Create' })
+			.click();
+		await page.waitForLoadState('networkidle');
+
+		// Wait for editor to be visible
+		const editor = page.locator('.ProseMirror, [contenteditable="true"]');
+		await expect(editor).toBeVisible({ timeout: 10000 });
+
+		// Clear default content and add our test content
+		await editor.click();
+		await page.keyboard.press('Meta+a'); // Select all
+		await page.keyboard.type(pageContent);
+
+		// Save the page
+		await page.click('button:has-text("Save")');
+		await page.waitForLoadState('networkidle');
+
+		// Publish the page via dropdown menu
+		// The menu button is next to the Save button (has MoreVertical icon)
+		const menuButton = page.locator('button:has(svg)').filter({
+			has: page.locator(
+				'[class*="lucide-more-vertical"], [data-lucide="more-vertical"]',
+			),
+		});
+
+		// Fallback: find the dropdown button near Save
+		const dropdownButton = page
+			.locator('button')
+			.filter({
+				hasText: '',
+			})
+			.last();
+
+		// Click the menu/dropdown button
+		if (await menuButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+			await menuButton.click();
+		} else {
+			// Find button after Save that opens dropdown
+			await page
+				.locator(
+					'button:has-text("Save") ~ button, button:has-text("Save") + * button',
+				)
+				.first()
+				.click();
+		}
+
+		// Click Publish in the dropdown menu
+		await page.waitForSelector('[role="menuitem"], [role="option"]', {
+			state: 'visible',
+			timeout: 5000,
+		});
+		// Use role menuitem to avoid matching "Not Published" badges
+		await page.getByRole('menuitem', { name: 'Publish' }).click();
+		await page.waitForLoadState('networkidle');
+
+		// Wait for "Published" badge to appear (replacing "Not Published")
+		await expect(page.locator('text=Published').first()).toBeVisible({
+			timeout: 10000,
+		});
+
+		// Click "View Page" button to open public page
+		const viewPageButton = page.locator('button:has-text("View Page")');
+		await expect(viewPageButton).toBeVisible({ timeout: 5000 });
+
+		// Click View Page - it opens in new tab, so we'll handle the popup
+		const [newPage] = await Promise.all([
+			page.context().waitForEvent('page'),
+			viewPageButton.click(),
+		]);
+
+		// Wait for the new page to load
+		await newPage.waitForLoadState('networkidle');
+
+		// Verify the public page shows the correct title
+		await expect(
+			newPage.locator('#wiki-page-title, h1').filter({ hasText: pageTitle }),
+		).toBeVisible({ timeout: 10000 });
+
+		// Verify the public page shows the content we added
+		await expect(
+			newPage.locator('#wiki-content, .prose').filter({ hasText: pageContent }),
+		).toBeVisible({ timeout: 10000 });
+
+		// Close the new tab
+		await newPage.close();
+	});
 });
