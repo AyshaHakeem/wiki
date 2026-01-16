@@ -1,6 +1,4 @@
-import { APIRequestContext, BrowserContext, Page } from '@playwright/test';
-
-const STORAGE_STATE_PATH = 'e2e/.auth/user.json';
+import { APIRequestContext, Page } from '@playwright/test';
 
 /**
  * Login via Frappe API (faster than UI login).
@@ -50,20 +48,6 @@ export async function loginViaUI(
 export async function logout(page: Page): Promise<void> {
 	await page.goto('/api/method/logout');
 	await page.waitForLoadState('networkidle');
-}
-
-/**
- * Save authentication state for reuse across tests.
- */
-export async function saveAuthState(context: BrowserContext): Promise<void> {
-	await context.storageState({ path: STORAGE_STATE_PATH });
-}
-
-/**
- * Get the storage state path for authenticated sessions.
- */
-export function getStorageStatePath(): string {
-	return STORAGE_STATE_PATH;
 }
 
 /**
