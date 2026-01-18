@@ -40,12 +40,14 @@ export function generateWikiTitle(prefix = 'Test Page'): string {
 
 /**
  * Create a test wiki space via API.
+ * If root_group is not provided, creates a root group document automatically.
  */
 export async function createTestWikiSpace(
 	request: APIRequestContext,
 	options: {
 		route?: string;
 		is_published?: boolean;
+		root_group?: string;
 	} = {},
 ): Promise<WikiSpace> {
 	const route = options.route || `test-space-${Date.now()}`;
@@ -53,6 +55,7 @@ export async function createTestWikiSpace(
 	return createDoc<WikiSpace>(request, 'Wiki Space', {
 		route,
 		is_published: options.is_published ?? true,
+		root_group: options.root_group,
 	});
 }
 
