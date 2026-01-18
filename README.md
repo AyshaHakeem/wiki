@@ -7,6 +7,7 @@
 
 [![Wiki](https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/simple/w2jgcb/master&style=flat&logo=cypress)](https://cloud.cypress.io/projects/w2jgcb/runs)
 [![CI](https://github.com/frappe/wiki/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/frappe/wiki/actions/workflows/ci.yml)
+[![UI Tests](https://github.com/frappe/wiki/actions/workflows/ui-tests.yml/badge.svg?event=push)](https://github.com/frappe/wiki/actions/workflows/ui-tests.yml)
 
 <img width="1582" alt="Hero Image" src="https://github.com/user-attachments/assets/b4bedd31-96fe-4c07-aded-339eade4a7d1" />
 
