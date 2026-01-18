@@ -16,6 +16,14 @@ export const WikiLink = Mark.create({
 		return this.options.autolink;
 	},
 
+	// TipTap v3 Markdown extension support
+	// Renders link marks to markdown format: [text](url)
+	renderMarkdown(node, helpers) {
+		const href = node.attrs?.href || '';
+		const content = helpers.renderChildren();
+		return `[${content}](${href})`;
+	},
+
 	addOptions() {
 		return {
 			openOnClick: false,
