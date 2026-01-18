@@ -5,7 +5,6 @@
 
 **Open Source Documentation Tool**
 
-[![Wiki](https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/simple/w2jgcb/master&style=flat&logo=cypress)](https://cloud.cypress.io/projects/w2jgcb/runs)
 [![CI](https://github.com/frappe/wiki/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/frappe/wiki/actions/workflows/ci.yml)
 [![UI Tests](https://github.com/frappe/wiki/actions/workflows/ui-tests.yml/badge.svg?event=push)](https://github.com/frappe/wiki/actions/workflows/ui-tests.yml)
 
