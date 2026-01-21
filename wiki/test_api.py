@@ -171,7 +171,7 @@ class TestReorderWikiDocumentsAPI(FrappeTestCase):
 		frappe.db.set_value("Wiki Document", q5.name, "sort_order", 1)  # Q5 second - WRONG
 
 		# Commit to simulate end of "setup" request
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		frappe.set_user("Administrator")
 
@@ -186,7 +186,7 @@ class TestReorderWikiDocumentsAPI(FrappeTestCase):
 		self.assertFalse(result.get("is_contribution"))
 
 		# Commit to simulate end of request 1 (Frappe auto-commits on POST)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		# === SIMULATE REQUEST 2: Page refresh - new get_wiki_tree call ===
 		# Clear all caches to simulate a fresh request
@@ -228,7 +228,7 @@ class TestReorderWikiDocumentsAPI(FrappeTestCase):
 		# Set initial wrong order: Q6 before Q5
 		frappe.db.set_value("Wiki Document", q6.name, "sort_order", 0)
 		frappe.db.set_value("Wiki Document", q5.name, "sort_order", 1)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		frappe.set_user("Administrator")
 
@@ -243,7 +243,7 @@ class TestReorderWikiDocumentsAPI(FrappeTestCase):
 		self.assertFalse(result.get("is_contribution"))
 
 		# Commit like Frappe would at end of request
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		# Clear everything to simulate new request
 		frappe.clear_cache()
@@ -294,7 +294,7 @@ class TestReorderWikiDocumentsAPI(FrappeTestCase):
 		for idx, doc in enumerate(initial_order):
 			frappe.db.set_value("Wiki Document", doc.name, "sort_order", idx)
 
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		# Step 1: Verify initial state in DB
 		print("\n=== STEP 1: Initial DB state ===")
@@ -348,7 +348,7 @@ class TestReorderWikiDocumentsAPI(FrappeTestCase):
 
 		# Step 5: Commit (simulating end of HTTP request)
 		print("\n=== STEP 5: Committing transaction ===")
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		# Step 6: Check DB after commit
 		print("\n=== STEP 6: DB state AFTER commit ===")
@@ -421,7 +421,7 @@ class TestWikiDocumentOrderingE2E(FrappeTestCase):
 			doc.insert()
 			groups.append(doc)
 
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		# Verify initial order via get_wiki_tree (admin API)
 		tree = get_wiki_tree(space.name)
@@ -438,7 +438,7 @@ class TestWikiDocumentOrderingE2E(FrappeTestCase):
 		# NOT setting sort_order - this should auto-assign to end
 		new_doc.insert()
 
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		# Check where Q6 appears
 		tree_after = get_wiki_tree(space.name)
@@ -485,7 +485,7 @@ class TestWikiDocumentOrderingE2E(FrappeTestCase):
 			child.is_published = 1
 			child.insert()
 
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		# Get order from admin API
 		admin_tree = get_wiki_tree(space.name)
@@ -535,7 +535,7 @@ class TestWikiDocumentOrderingE2E(FrappeTestCase):
 			child.is_published = 1
 			child.insert()
 
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		# Verify initial public-facing order
 		descendants = get_descendants_of("Wiki Document", space.root_group, ignore_permissions=True)
@@ -554,7 +554,7 @@ class TestWikiDocumentOrderingE2E(FrappeTestCase):
 		)
 		self.assertFalse(result.get("is_contribution"))
 
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		# Verify new order in admin API
 		admin_tree_after = get_wiki_tree(space.name)
@@ -617,7 +617,7 @@ class TestWikiDocumentOrderingE2E(FrappeTestCase):
 			child.is_published = 1
 			child.insert()
 
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		# Step 2: Verify order on public side
 		print("\nStep 2: Verifying public-facing order...")
@@ -647,7 +647,7 @@ class TestWikiDocumentOrderingE2E(FrappeTestCase):
 		child6.is_published = 1
 		child6.insert()
 
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		# Check where Folder6 appears
 		admin_tree = get_wiki_tree(space.name)
@@ -675,7 +675,7 @@ class TestWikiDocumentOrderingE2E(FrappeTestCase):
 			siblings=json.dumps(new_order),
 		)
 		self.assertFalse(result.get("is_contribution"))
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep
 
 		# Step 5: Verify public side reflects changes
 		print("\nStep 5: Verifying public-facing order after reorder...")
