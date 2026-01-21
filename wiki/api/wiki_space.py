@@ -6,51 +6,71 @@ from frappe.utils.nestedset import get_descendants_of
 @frappe.whitelist()
 def get_wiki_tree(space_id: str) -> dict:
 	"""Get the tree structure of Wiki Documents for a given Wiki Space."""
-	space = frappe.get_cached_doc("Wiki Space", space_id)
+	space = frappe.get_doc("Wiki Space", space_id)
 	space.check_permission("read")
 
 	if not space.root_group:
 		return {"children": [], "root_group": None}
 
 	root_group = space.root_group
-	descendants = get_descendants_of("Wiki Document", root_group, ignore_permissions=True)
 
-	if not descendants:
-		return {"children": [], "root_group": root_group}
-
-	tree = _build_wiki_tree_for_api(descendants)
+	# Build tree by traversing parent_wiki_document relationships
+	# This is more reliable than using nested set values which may not be
+	# properly set when documents are created rapidly via API
+	tree = _build_wiki_tree_from_parent(root_group)
 	return {"children": tree, "root_group": root_group}
 
 
-def _build_wiki_tree_for_api(documents: list[str]) -> list[dict]:
-	"""Build a nested tree structure from a list of Wiki Document names."""
-	wiki_documents = frappe.db.get_all(
+def _build_wiki_tree_from_parent(root_group: str) -> list[dict]:
+	"""
+	Build a nested tree structure by traversing parent_wiki_document relationships.
+
+	This approach doesn't rely on nested set lft/rgt values, making it more reliable
+	when documents are created rapidly via API.
+	"""
+	# Fetch all documents that could be in this tree (have a parent_wiki_document set)
+	# Then build the tree structure in memory
+	all_docs = frappe.db.get_all(
 		"Wiki Document",
-		fields=["name", "title", "is_group", "parent_wiki_document", "route", "is_published", "sort_order"],
-		filters={"name": ("in", documents)},
-		order_by="lft asc",
+		fields=[
+			"name",
+			"title",
+			"is_group",
+			"parent_wiki_document",
+			"route",
+			"is_published",
+			"sort_order",
+		],
+		filters={"parent_wiki_document": ["is", "set"]},
+		ignore_permissions=True,
 	)
 
-	doc_map = {doc["name"]: {**doc, "label": doc["title"], "children": []} for doc in wiki_documents}
+	# Build a map of parent -> children
+	children_map: dict[str, list[dict]] = {}
+	for doc in all_docs:
+		parent = doc["parent_wiki_document"]
+		if parent not in children_map:
+			children_map[parent] = []
+		children_map[parent].append(doc)
 
-	root_nodes = []
-	for doc in wiki_documents:
-		parent_name = doc["parent_wiki_document"]
-		if parent_name and parent_name in doc_map:
-			doc_map[parent_name]["children"].append(doc_map[doc["name"]])
-		else:
-			root_nodes.append(doc_map[doc["name"]])
+	# Sort children by sort_order at each level
+	for parent in children_map:
+		children_map[parent].sort(key=lambda x: (x.get("sort_order") or 0, x["name"]))
 
-	# Sort children by sort_order at each level (lft is used for tree structure, sort_order for display)
-	def sort_children(nodes):
-		nodes.sort(key=lambda x: (x.get("sort_order") or 0, x["name"]))
-		for node in nodes:
-			if node["children"]:
-				sort_children(node["children"])
+	# Build tree recursively from the children map
+	def build_subtree(parent_name: str) -> list[dict]:
+		children = children_map.get(parent_name, [])
+		result = []
+		for child in children:
+			node = {
+				**child,
+				"label": child["title"],
+				"children": build_subtree(child["name"]) if child["is_group"] else [],
+			}
+			result.append(node)
+		return result
 
-	sort_children(root_nodes)
-
-	return root_nodes
+	return build_subtree(root_group)
 
 
 @frappe.whitelist()
