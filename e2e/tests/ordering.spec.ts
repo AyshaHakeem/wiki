@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { callMethod } from '../helpers/frappe';
+import { callMethod, updateDoc } from '../helpers/frappe';
 import { createTestWikiDocument, createTestWikiSpace } from '../helpers/wiki';
 
 /**
@@ -30,9 +30,8 @@ test.describe('Wiki Document Ordering', () => {
 		});
 
 		// Update space with root_group
-		await request.put(`/api/resource/Wiki Space/${space.name}`, {
-			data: { root_group: rootGroup.name },
-			headers: { 'Content-Type': 'application/json' },
+		await updateDoc(request, 'Wiki Space', space.name, {
+			root_group: rootGroup.name,
 		});
 
 		// Create 5 folders (Q1-Q5) under root
@@ -122,9 +121,8 @@ test.describe('Wiki Document Ordering', () => {
 			is_published: true,
 		});
 
-		await request.put(`/api/resource/Wiki Space/${space.name}`, {
-			data: { root_group: rootGroup.name },
-			headers: { 'Content-Type': 'application/json' },
+		await updateDoc(request, 'Wiki Space', space.name, {
+			root_group: rootGroup.name,
 		});
 
 		// Create 5 folders
@@ -222,9 +220,8 @@ test.describe('Wiki Document Ordering', () => {
 			is_published: true,
 		});
 
-		await request.put(`/api/resource/Wiki Space/${space.name}`, {
-			data: { root_group: rootGroup.name },
-			headers: { 'Content-Type': 'application/json' },
+		await updateDoc(request, 'Wiki Space', space.name, {
+			root_group: rootGroup.name,
 		});
 
 		// Create 5 folders with specific order
@@ -319,9 +316,8 @@ test.describe('Wiki Document Ordering', () => {
 			is_published: true,
 		});
 
-		await request.put(`/api/resource/Wiki Space/${space.name}`, {
-			data: { root_group: rootGroup.name },
-			headers: { 'Content-Type': 'application/json' },
+		await updateDoc(request, 'Wiki Space', space.name, {
+			root_group: rootGroup.name,
 		});
 
 		// Create 3 folders for simpler drag test
