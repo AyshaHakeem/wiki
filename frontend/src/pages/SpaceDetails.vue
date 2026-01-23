@@ -323,6 +323,7 @@ watch([() => space.doc, isChangeRequestMode], async ([doc, isMode]) => {
 
 watch(() => currentChangeRequest.value?.name, async (name) => {
     if (name) {
+        await loadChanges();
         await crTree.reload();
     }
 });

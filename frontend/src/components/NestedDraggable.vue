@@ -50,18 +50,21 @@
                             {{ element.title }}
                         </span>
 
-                        <Badge v-if="element._changeType === 'added'" variant="subtle" theme="blue" size="sm">
-                            {{ __('New') }}
-                        </Badge>
-                        <Badge v-else-if="element._changeType === 'deleted'" variant="subtle" theme="red" size="sm">
-                            {{ __('Deleted') }}
-                        </Badge>
-                        <Badge v-else-if="element._changeType === 'modified'" variant="subtle" theme="blue" size="sm">
-                            {{ __('Modified') }}
-                        </Badge>
-                        <Badge v-else-if="!element.is_group && !element.is_published" variant="subtle" theme="orange" size="sm">
-                            {{ __('Not Published') }}
-                        </Badge>
+						<Badge v-if="element._changeType === 'added'" variant="subtle" theme="blue" size="sm">
+							{{ __('New') }}
+						</Badge>
+						<Badge v-else-if="element._changeType === 'deleted'" variant="subtle" theme="red" size="sm">
+							{{ __('Deleted') }}
+						</Badge>
+						<Badge v-else-if="element._changeType === 'modified'" variant="subtle" theme="blue" size="sm">
+							{{ __('Modified') }}
+						</Badge>
+						<Badge v-else-if="element._changeType === 'reordered'" variant="subtle" theme="orange" size="sm">
+							{{ __('Reordered') }}
+						</Badge>
+						<Badge v-else-if="!element.is_group && !element.is_published" variant="subtle" theme="orange" size="sm">
+							{{ __('Not Published') }}
+						</Badge>
                     </div>
 
                     <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" @click.stop>

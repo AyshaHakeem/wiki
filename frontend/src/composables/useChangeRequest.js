@@ -4,6 +4,7 @@ import { computed, ref } from 'vue';
 
 const currentChangeRequest = ref(null);
 const isLoadingChangeRequest = ref(false);
+let initChangeRequestPromise = null;
 
 export function isWikiManager() {
 	const user = userResource.data;
@@ -87,8 +88,20 @@ export function useChangeRequestMode(spaceId) {
 	async function initChangeRequest() {
 		if (!isChangeRequestMode.value || !spaceId.value) return null;
 
+		if (isLoadingChangeRequest.value && initChangeRequestPromise) {
+			await initChangeRequestPromise;
+			return currentChangeRequest.value;
+		}
+
 		isLoadingChangeRequest.value = true;
-		await draftChangeRequestResource.submit({ wiki_space: spaceId.value });
+		initChangeRequestPromise = draftChangeRequestResource.submit({
+			wiki_space: spaceId.value,
+		});
+		try {
+			await initChangeRequestPromise;
+		} finally {
+			initChangeRequestPromise = null;
+		}
 		return currentChangeRequest.value;
 	}
 

@@ -217,27 +217,18 @@ test.describe('Change Request Flow', () => {
 			await expect(pageEntry).toBeVisible({ timeout: 10000 });
 		};
 
-		const submitChangeRequestForPage = async (
-			pageTitle: string,
-			groupTitle: string,
-		) => {
-			const pageEntry = page
-				.locator('aside')
-				.getByText(pageTitle, { exact: true });
-			if (!(await pageEntry.isVisible())) {
-				await page
-					.locator('aside')
-					.getByText(groupTitle, { exact: true })
-					.click();
-			}
-			await pageEntry.click();
-			await page.waitForURL(/\/draft\//);
-			await page.getByRole('button', { name: 'Submit for Review' }).click();
-			await page.getByRole('button', { name: 'Submit' }).click();
-			await expect(page).toHaveURL(/\/wiki\/change-requests\//, {
-				timeout: 10000,
-			});
-			return page.url();
+		const submitChangeRequestForSpace = async () => {
+			const draftChangeRequest = await callMethod<{ name: string }>(
+				request,
+				'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.get_or_create_draft_change_request',
+				{ wiki_space: spaceId },
+			);
+			await callMethod(
+				request,
+				'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.request_review',
+				{ name: draftChangeRequest.name, reviewers: [] },
+			);
+			return `/wiki/change-requests/${draftChangeRequest.name}`;
 		};
 
 		const mergeChangeRequest = async (url: string) => {
@@ -257,7 +248,7 @@ test.describe('Change Request Flow', () => {
 		await createGroup(cr1GroupB);
 		await addPageToGroup(cr1GroupA, cr1Page);
 
-		const cr1Url = await submitChangeRequestForPage(cr1Page, cr1GroupA);
+		const cr1Url = await submitChangeRequestForSpace();
 
 		// Change request 2 (created after CR1 is submitted)
 		await page.goto('/wiki/spaces');
@@ -273,7 +264,7 @@ test.describe('Change Request Flow', () => {
 		await createGroup(cr2GroupB);
 		await addPageToGroup(cr2GroupA, cr2Page);
 
-		const cr2Url = await submitChangeRequestForPage(cr2Page, cr2GroupA);
+		const cr2Url = await submitChangeRequestForSpace();
 
 		// Merge both change requests
 		await mergeChangeRequest(cr1Url);
@@ -312,5 +303,211 @@ test.describe('Change Request Flow', () => {
 		for (const title of expectedTitles) {
 			expect(titles.has(title)).toBeTruthy();
 		}
+	});
+
+	test('should label reordered pages when reordering within a group', async ({
+		page,
+		request,
+	}) => {
+		await page.goto('/wiki/spaces');
+		await page.waitForLoadState('networkidle');
+
+		const timestamp = Date.now();
+		const spaceName = `CR Reorder Space ${timestamp}`;
+		const spaceRoute = `cr-reorder-space-${timestamp}`;
+
+		await page.getByRole('button', { name: 'New Space' }).click();
+		await page.waitForSelector('[role="dialog"]', { state: 'visible' });
+		await page.getByLabel('Space Name').fill(spaceName);
+		await page.getByLabel('Route').fill(spaceRoute);
+		await page
+			.getByRole('dialog')
+			.getByRole('button', { name: 'Create' })
+			.click();
+		await page.waitForLoadState('networkidle');
+		await expect(page).toHaveURL(/\/wiki\/spaces\//);
+
+		const spaceId = page.url().split('/wiki/spaces/')[1];
+
+		const groupTitle = `Reorder Group ${timestamp}`;
+
+		const pageTitles = ['1', '2', '3', '4', '5'].map(
+			(number) => `Reorder Page ${number} ${timestamp}`,
+		);
+
+		const initialDraft = await callMethod<{ name: string }>(
+			request,
+			'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.get_or_create_draft_change_request',
+			{ wiki_space: spaceId },
+		);
+		const initialTree = await callMethod<{ root_group?: string }>(
+			request,
+			'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.get_cr_tree',
+			{ name: initialDraft.name },
+		);
+		expect(initialTree.root_group).toBeTruthy();
+		const groupKey = await callMethod<string>(
+			request,
+			'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.create_cr_page',
+			{
+				name: initialDraft.name,
+				parent_key: initialTree.root_group,
+				title: groupTitle,
+				content: '',
+				is_group: 1,
+				is_published: 1,
+			},
+		);
+		for (const pageTitle of pageTitles) {
+			await callMethod(
+				request,
+				'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.create_cr_page',
+				{
+					name: initialDraft.name,
+					parent_key: groupKey,
+					title: pageTitle,
+					content: '',
+					is_group: 0,
+					is_published: 1,
+				},
+			);
+		}
+
+		await callMethod(
+			request,
+			'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.request_review',
+			{ name: initialDraft.name, reviewers: [] },
+		);
+		await callMethod(
+			request,
+			'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.merge_change_request',
+			{ name: initialDraft.name },
+		);
+
+		// Start a new change request and reorder pages inside the group
+		const draftResponsePromise = page.waitForResponse((response) => {
+			if (
+				!response
+					.url()
+					.includes(
+						'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.get_or_create_draft_change_request',
+					)
+			) {
+				return false;
+			}
+			if (response.request().method() !== 'POST') {
+				return false;
+			}
+			const postData = response.request().postData() || '';
+			return postData.includes(spaceId);
+		});
+
+		await page.goto(`/wiki/spaces/${spaceId}`);
+		await page.waitForLoadState('networkidle');
+
+		const draftResponse = await draftResponsePromise;
+		const draftPayload = await draftResponse.json();
+		const draftChangeRequest = draftPayload?.message as { name: string };
+		expect(draftChangeRequest?.name).toBeTruthy();
+
+		type CrTreeNode = {
+			title?: string;
+			doc_key?: string;
+			children?: CrTreeNode[];
+		};
+
+		const crTree = await callMethod<{ children: CrTreeNode[] }>(
+			request,
+			'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.get_cr_tree',
+			{ name: draftChangeRequest.name },
+		);
+
+		const findNode = (
+			nodes: CrTreeNode[],
+			title: string,
+		): CrTreeNode | null => {
+			for (const node of nodes) {
+				if (node?.title === title) {
+					return node;
+				}
+				if (node?.children?.length) {
+					const found = findNode(node.children, title);
+					if (found) return found;
+				}
+			}
+			return null;
+		};
+
+		const groupNode = findNode(crTree.children || [], groupTitle);
+		expect(groupNode).toBeTruthy();
+		expect(groupNode?.doc_key).toBeTruthy();
+		const children = groupNode?.children || [];
+		const keyByTitle = new Map(
+			children
+				.filter((child) => child.title && child.doc_key)
+				.map((child) => [child.title as string, child.doc_key as string]),
+		);
+
+		const reorderedTitles = [
+			pageTitles[1],
+			pageTitles[0],
+			pageTitles[2],
+			pageTitles[3],
+			pageTitles[4],
+		];
+
+		const orderedDocKeys = reorderedTitles.map((title) =>
+			keyByTitle.get(title),
+		);
+		expect(orderedDocKeys.every(Boolean)).toBeTruthy();
+
+		await callMethod(
+			request,
+			'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.reorder_cr_children',
+			{
+				name: draftChangeRequest.name,
+				parent_key: groupNode?.doc_key,
+				ordered_doc_keys: orderedDocKeys as string[],
+			},
+		);
+
+		await page.reload();
+		await page.waitForLoadState('networkidle');
+
+		// Ensure the group is expanded for assertions
+		await page.locator('aside').getByText(groupTitle, { exact: true }).click();
+
+		const sidebarText = await page.locator('aside').innerText();
+		expect(sidebarText.indexOf(pageTitles[1])).toBeLessThan(
+			sidebarText.indexOf(pageTitles[0]),
+		);
+
+		const movedTitle = pageTitles[1];
+		const movedRow = page
+			.locator('aside .draggable-item', { hasText: movedTitle })
+			.first();
+		await expect(
+			movedRow.getByText('Reordered', { exact: true }),
+		).toBeVisible();
+		await expect(movedRow.getByText('Modified', { exact: true })).toHaveCount(
+			0,
+		);
+
+		// Submit for review and verify reordered badge in review list
+		await callMethod(
+			request,
+			'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.request_review',
+			{ name: draftChangeRequest.name, reviewers: [] },
+		);
+		await page.goto(`/wiki/change-requests/${draftChangeRequest.name}`);
+		await page.waitForLoadState('networkidle');
+
+		const changeCard = page
+			.locator('div.border.border-outline-gray-2.rounded-lg.overflow-hidden')
+			.filter({ has: page.getByText(movedTitle, { exact: true }) })
+			.first();
+		await expect(
+			changeCard.getByText('Reordered', { exact: true }),
+		).toBeVisible();
 	});
 });

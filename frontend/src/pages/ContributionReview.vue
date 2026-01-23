@@ -174,6 +174,7 @@ import LucideChevronDown from '~icons/lucide/chevron-down';
 import LucideCheck from '~icons/lucide/check';
 import LucideX from '~icons/lucide/x';
 import LucideAlertCircle from '~icons/lucide/alert-circle';
+import LucideArrowUpDown from '~icons/lucide/arrow-up-down';
 import LucidePlus from '~icons/lucide/plus';
 import LucidePencil from '~icons/lucide/pencil';
 import LucideTrash2 from '~icons/lucide/trash-2';
@@ -326,6 +327,7 @@ function getChangeIcon(changeType) {
 		case 'added': return LucidePlus;
 		case 'deleted': return LucideTrash2;
 		case 'modified': return LucidePencil;
+		case 'reordered': return LucideArrowUpDown;
 		default: return LucideFileText;
 	}
 }
@@ -335,6 +337,7 @@ function getChangeIconClass(changeType) {
 		case 'added': return 'bg-green-100 text-green-600';
 		case 'deleted': return 'bg-red-100 text-red-600';
 		case 'modified': return 'bg-blue-100 text-blue-600';
+		case 'reordered': return 'bg-amber-100 text-amber-600';
 		default: return 'bg-gray-100 text-gray-600';
 	}
 }
@@ -344,6 +347,7 @@ function getChangeTheme(changeType) {
 		case 'added': return 'green';
 		case 'deleted': return 'red';
 		case 'modified': return 'blue';
+		case 'reordered': return 'orange';
 		default: return 'gray';
 	}
 }
@@ -353,6 +357,7 @@ function getChangeLabel(changeType) {
 		case 'added': return __('New');
 		case 'deleted': return __('Deleted');
 		case 'modified': return __('Modified');
+		case 'reordered': return __('Reordered');
 		default: return changeType;
 	}
 }
@@ -365,6 +370,8 @@ function getChangeDescription(changeType, isGroup) {
 			return __('Will be deleted');
 		case 'modified':
 			return __('Content or metadata updated');
+		case 'reordered':
+			return __('Order updated');
 		default:
 			return '';
 	}

@@ -38,6 +38,42 @@ def _is_manager_or_approver(user: str | None = None) -> bool:
 	return bool(roles.intersection({"Wiki Manager", "Wiki Approver", "System Manager"}))
 
 
+def touch_change_request(name: str) -> None:
+	frappe.db.set_value(
+		"Wiki Change Request",
+		name,
+		{"modified": now_datetime(), "modified_by": frappe.session.user},
+		update_modified=False,
+	)
+
+
+def has_revision_changes(base_revision: str | None, head_revision: str | None) -> bool:
+	if not base_revision or not head_revision:
+		return False
+	base_hash = (
+		frappe.get_value(
+			"Wiki Revision",
+			base_revision,
+			["tree_hash", "content_hash"],
+			as_dict=True,
+		)
+		or {}
+	)
+	head_hash = (
+		frappe.get_value(
+			"Wiki Revision",
+			head_revision,
+			["tree_hash", "content_hash"],
+			as_dict=True,
+		)
+		or {}
+	)
+	return bool(
+		base_hash.get("tree_hash") != head_hash.get("tree_hash")
+		or base_hash.get("content_hash") != head_hash.get("content_hash")
+	)
+
+
 @frappe.whitelist()
 def get_or_create_draft_change_request(wiki_space: str, title: str | None = None) -> dict[str, Any]:
 	existing = frappe.get_all(
@@ -47,12 +83,18 @@ def get_or_create_draft_change_request(wiki_space: str, title: str | None = None
 			"status": ("in", ["Draft", "Changes Requested"]),
 			"owner": frappe.session.user,
 		},
-		fields=["name"],
+		fields=["name", "base_revision", "head_revision", "modified"],
 		order_by="modified desc",
-		limit=1,
 	)
 	if existing:
-		cr = frappe.get_doc("Wiki Change Request", existing[0]["name"])
+		selected = None
+		for row in existing:
+			if has_revision_changes(row.get("base_revision"), row.get("head_revision")):
+				selected = row
+				break
+		if not selected:
+			selected = existing[0]
+		cr = frappe.get_doc("Wiki Change Request", selected["name"])
 		cr.check_permission("read")
 		main_revision = frappe.get_value("Wiki Space", wiki_space, "main_revision")
 		if main_revision and cr.base_revision and cr.base_revision != main_revision:
@@ -203,6 +245,17 @@ def get_cr_tree(name: str) -> dict[str, Any]:
 			node["document_name"] = mapped.get("name")
 			node["route"] = mapped.get("route")
 
+	change_map = {
+		change.get("doc_key"): change.get("change_type")
+		for change in (diff_change_request(cr.name, scope="summary") or [])
+		if change.get("doc_key")
+	}
+	if change_map:
+		for node in doc_map.values():
+			change_type = change_map.get(node.get("doc_key"))
+			if change_type:
+				node["_changeType"] = change_type
+
 	def sort_children(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
 		nodes.sort(key=lambda n: (n.get("order_index") or 0, n.get("title") or ""))
 		for node in nodes:
@@ -324,6 +377,7 @@ def create_cr_page(
 	item.insert()
 
 	recompute_revision_hashes(head_revision)
+	touch_change_request(cr.name)
 	return item.doc_key
 
 
@@ -352,6 +406,7 @@ def update_cr_page(name: str, doc_key: str, fields: dict[str, Any]) -> None:
 	item.save()
 
 	recompute_revision_hashes(cr.head_revision)
+	touch_change_request(cr.name)
 
 
 @frappe.whitelist()
@@ -370,6 +425,7 @@ def move_cr_page(name: str, doc_key: str, new_parent_key: str, new_order_index: 
 	item.save()
 
 	recompute_revision_hashes(cr.head_revision)
+	touch_change_request(cr.name)
 
 
 @frappe.whitelist()
@@ -386,6 +442,7 @@ def reorder_cr_children(name: str, parent_key: str, ordered_doc_keys: list[str])
 		frappe.db.set_value("Wiki Revision Item", item_name, "order_index", index)
 
 	recompute_revision_hashes(cr.head_revision)
+	touch_change_request(cr.name)
 
 
 @frappe.whitelist()
@@ -423,6 +480,7 @@ def delete_cr_page(name: str, doc_key: str) -> None:
 			to_visit.append(child_key)
 
 	recompute_revision_hashes(cr.head_revision)
+	touch_change_request(cr.name)
 
 
 @frappe.whitelist()
@@ -486,10 +544,21 @@ def diff_change_request(name: str, scope: str = "summary", doc_key: str | None =
 			)
 			continue
 		if base != head:
+			change_type = "modified"
+			order_changed = base.get("order_index") != head.get("order_index")
+			metadata_fields = ["title", "slug", "is_group", "is_published", "parent_key"]
+			metadata_changed = any(base.get(field) != head.get(field) for field in metadata_fields)
+			content_changed = base.get("content_hash") != head.get("content_hash")
+			if base.get("content_hash") is None and head.get("content_hash") is None:
+				base_blob = (base_items.get(key) or {}).get("content_blob")
+				head_blob = (head_items.get(key) or {}).get("content_blob")
+				content_changed = base_blob != head_blob
+			if order_changed and not metadata_changed and not content_changed:
+				change_type = "reordered"
 			changes.append(
 				{
 					"doc_key": key,
-					"change_type": "modified",
+					"change_type": change_type,
 					"title": head.get("title") or base.get("title"),
 					"is_group": head.get("is_group")
 					if head.get("is_group") is not None
