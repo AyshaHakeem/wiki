@@ -86,6 +86,7 @@ class WikiDocument(NestedSet):
 	def validate(self):
 		self.set_doc_key()
 		self.set_slug()
+		self.set_sort_order_for_new_document()
 		self.set_route()
 		self.remove_leading_slash_from_route()
 		self.set_boilerplate_content()
@@ -104,6 +105,35 @@ class WikiDocument(NestedSet):
 		"""Ensure slug is set for route generation."""
 		if not self.slug:
 			self.slug = frappe.website.utils.cleanup_page_name(self.title).replace("_", "-")
+
+	def set_sort_order_for_new_document(self):
+		"""Auto-assign sort_order for new documents to place them at the end of siblings."""
+		if not self.is_new():
+			return
+
+		if not self.parent_wiki_document:
+			return
+
+		# Only auto-assign if sort_order is 0 (the default) or None
+		# This means the user didn't explicitly set a sort_order
+		if self.sort_order not in (None, 0):
+			return
+
+		# Get the maximum sort_order among siblings using query builder
+		WikiDocument = frappe.qb.DocType("Wiki Document")
+		max_sort_order = (
+			frappe.qb.from_(WikiDocument)
+			.where(WikiDocument.parent_wiki_document == self.parent_wiki_document)
+			.select(frappe.query_builder.functions.Max(WikiDocument.sort_order))
+		).run(pluck=True)[0]
+
+		# If there are no siblings or max is None, keep sort_order as 0
+		if max_sort_order is None:
+			self.sort_order = 0
+			return
+
+		# Set sort_order to max + 1 to place at the end
+		self.sort_order = max_sort_order + 1
 
 	def set_boilerplate_content(self):
 		if not self.content and not self.is_group:
@@ -415,7 +445,7 @@ def build_nested_wiki_tree(documents: list[str]):
 	# Create a mapping of document name to document data
 	wiki_documents = frappe.db.get_all(
 		"Wiki Document",
-		fields=["name", "title", "is_group", "parent_wiki_document", "route"],
+		fields=["name", "title", "is_group", "parent_wiki_document", "route", "sort_order"],
 		filters={"name": ("in", documents)},
 		or_filters={"is_published": 1, "is_group": 1},
 		order_by="lft asc",
@@ -435,6 +465,15 @@ def build_nested_wiki_tree(documents: list[str]):
 		else:
 			# This is a root node (parent not in our dataset)
 			root_nodes.append(doc_map[doc["name"]])
+
+	# Sort children by sort_order at each level
+	def sort_children(nodes):
+		nodes.sort(key=lambda x: (x.get("sort_order") or 0, x["name"]))
+		for node in nodes:
+			if node["children"]:
+				sort_children(node["children"])
+
+	sort_children(root_nodes)
 
 	# Remove empty groups recursively
 	def remove_empty_groups(nodes):
