@@ -484,7 +484,8 @@ test.describe('Change Request Flow', () => {
 
 		const movedTitle = pageTitles[1];
 		const movedRow = page
-			.locator('aside .draggable-item', { hasText: movedTitle })
+			.locator('aside .draggable-item > div.flex')
+			.filter({ has: page.getByText(movedTitle, { exact: true }) })
 			.first();
 		await expect(
 			movedRow.getByText('Reordered', { exact: true }),
