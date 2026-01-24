@@ -77,7 +77,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['refresh']);
-const router = useRouter();
 const editorRef = ref(null);
 
 const spaceIdRef = toRef(props, 'spaceId');
