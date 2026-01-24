@@ -949,3 +949,139 @@ class TestProcessNavbarItems(unittest.TestCase):
 
 		self.assertEqual(result[0]["icon"], "github")
 		self.assertEqual(result[1]["icon"], "youtube")
+
+
+class TestSetRoute(IntegrationTestCase):
+	"""
+	Unit tests for the set_route method of WikiDocument.
+	Tests route generation for nested documents to prevent path duplication.
+	"""
+
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		cls.test_docs = []
+		cls.test_spaces = []
+
+	def tearDown(self):
+		# Clean up test documents (in reverse order to handle parent-child dependencies)
+		for doc_name in reversed(self.test_docs):
+			if frappe.db.exists("Wiki Document", doc_name):
+				frappe.delete_doc("Wiki Document", doc_name, force=True)
+		self.test_docs = []
+
+		# Clean up test spaces
+		for space_name in self.test_spaces:
+			if frappe.db.exists("Wiki Space", space_name):
+				frappe.delete_doc("Wiki Space", space_name, force=True)
+		self.test_spaces = []
+
+	def _create_wiki_document(self, title, parent=None, is_group=False, slug=None):
+		"""Helper to create a wiki document for testing."""
+		doc = frappe.get_doc(
+			{
+				"doctype": "Wiki Document",
+				"title": title,
+				"parent_wiki_document": parent,
+				"is_group": is_group,
+				"slug": slug,
+				"content": f"Content for {title}",
+			}
+		)
+		doc.insert(ignore_permissions=True)
+		self.test_docs.append(doc.name)
+		return doc
+
+	def _create_wiki_space(self, space_name, route, root_group):
+		"""Helper to create a wiki space for testing."""
+		doc = frappe.get_doc(
+			{
+				"doctype": "Wiki Space",
+				"space_name": space_name,
+				"route": route,
+				"root_group": root_group,
+			}
+		)
+		doc.insert(ignore_permissions=True)
+		self.test_spaces.append(doc.name)
+		return doc
+
+	def test_nested_document_route_no_duplication(self):
+		"""
+		Test that deeply nested documents generate correct routes without path duplication.
+
+		This is a regression test for a bug where routes were being generated as:
+		documentation/documentation/doctypes/documentation/doctypes/submittable/workflows
+		instead of:
+		documentation/doctypes/submittable/workflows
+
+		The bug occurred because set_route() was appending full ancestor routes
+		(which already included the space prefix) instead of just ancestor slugs.
+		"""
+		# Create the document hierarchy: Root -> DocTypes -> Submittable -> Workflows
+		root_group = self._create_wiki_document("Route Test Root", is_group=True, slug="route-test-root")
+		doctypes = self._create_wiki_document(
+			"DocTypes", parent=root_group.name, is_group=True, slug="doctypes"
+		)
+		submittable = self._create_wiki_document(
+			"Submittable", parent=doctypes.name, is_group=True, slug="submittable"
+		)
+		workflows = self._create_wiki_document("Workflows", parent=submittable.name, slug="workflows")
+
+		# Create wiki space with route "documentation"
+		self._create_wiki_space("Documentation Space", "documentation", root_group.name)
+
+		# Reload documents to get updated routes
+		doctypes.reload()
+		submittable.reload()
+		workflows.reload()
+
+		# Verify routes are correct without duplication
+		self.assertEqual(doctypes.route, "documentation/doctypes")
+		self.assertEqual(submittable.route, "documentation/doctypes/submittable")
+		self.assertEqual(workflows.route, "documentation/doctypes/submittable/workflows")
+
+		# Verify no path segment appears more than once (except as part of different segments)
+		self.assertNotIn("documentation/documentation", workflows.route)
+		self.assertNotIn("doctypes/doctypes", workflows.route)
+
+	def test_route_regeneration_on_existing_document(self):
+		"""
+		Test that clearing and regenerating a route on an existing document
+		produces the correct path without duplication.
+
+		This specifically tests the code path where is_new() returns False
+		and get_ancestors() is used instead of traversing parent_wiki_document.
+		"""
+		# Create the document hierarchy
+		root_group = self._create_wiki_document("Regen Test Root", is_group=True, slug="regen-test-root")
+		parent_folder = self._create_wiki_document(
+			"Parent Folder", parent=root_group.name, is_group=True, slug="parent"
+		)
+		child_doc = self._create_wiki_document("Child Doc", parent=parent_folder.name, slug="child")
+
+		# Create wiki space
+		self._create_wiki_space("Regen Test Space", "regen-space", root_group.name)
+
+		# Reload to get initial routes
+		child_doc.reload()
+		initial_route = child_doc.route
+		self.assertEqual(initial_route, "regen-space/parent/child")
+
+		# Clear route and save to trigger regeneration
+		child_doc.route = None
+		child_doc.save()
+
+		# Reload and verify route is still correct
+		child_doc.reload()
+		self.assertEqual(child_doc.route, "regen-space/parent/child")
+
+	def test_single_level_nesting_route(self):
+		"""Test route generation for a document one level deep."""
+		root_group = self._create_wiki_document("Single Level Root", is_group=True, slug="single-level-root")
+		child = self._create_wiki_document("Child Page", parent=root_group.name, slug="child-page")
+
+		self._create_wiki_space("Single Level Space", "single", root_group.name)
+
+		child.reload()
+		self.assertEqual(child.route, "single/child-page")

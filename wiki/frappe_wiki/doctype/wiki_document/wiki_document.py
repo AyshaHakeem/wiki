@@ -174,9 +174,9 @@ class WikiDocument(NestedSet):
 				# ancestors are ordered from immediate parent to root
 				# Exclude the root group (last item) as it's the Wiki Space root
 				for ancestor_name in reversed(ancestors[:-1]):
-					ancestor_route = frappe.get_cached_value("Wiki Document", ancestor_name, "route")
-					if ancestor_route:
-						route_parts.append(ancestor_route)
+					ancestor_slug = frappe.get_cached_value("Wiki Document", ancestor_name, "slug")
+					if ancestor_slug:
+						route_parts.append(ancestor_slug)
 
 			# Add this document's slug
 			slug = self.slug or frappe.website.utils.cleanup_page_name(self.title).replace("_", "-")
