@@ -92,6 +92,27 @@
                         @edit-external-link="(el) => emit('edit-external-link', el)"
                         @update="handleNestedUpdate"
                     />
+                    <!-- Empty group actions -->
+                    <div
+                        v-if="!element.children || element.children.length === 0"
+                        class="flex items-center gap-2 py-2 text-ink-gray-5"
+                        :style="{ paddingLeft: `${level * 12 + 60}px` }"
+                    >
+                        <button
+                            class="flex items-center gap-1.5 text-xs hover:text-ink-gray-7 hover:bg-surface-gray-2 px-2 py-1 rounded transition-colors"
+                            @click="emit('create', element.doc_key, false)"
+                        >
+                            <LucideFilePlus class="size-3.5" />
+                            <span>{{ __('Add Page') }}</span>
+                        </button>
+                        <button
+                            class="flex items-center gap-1.5 text-xs hover:text-ink-gray-7 hover:bg-surface-gray-2 px-2 py-1 rounded transition-colors"
+                            @click="emit('create', element.doc_key, true)"
+                        >
+                            <LucideFolderPlus class="size-3.5" />
+                            <span>{{ __('Add Group') }}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </template>
@@ -111,6 +132,8 @@ import LucideFileText from '~icons/lucide/file-text';
 import LucideLink from '~icons/lucide/link';
 import LucideMoreHorizontal from '~icons/lucide/more-horizontal';
 import LucideGripVertical from '~icons/lucide/grip-vertical';
+import LucideFilePlus from '~icons/lucide/file-plus';
+import LucideFolderPlus from '~icons/lucide/folder-plus';
 
 defineOptions({
     name: 'NestedDraggable',
