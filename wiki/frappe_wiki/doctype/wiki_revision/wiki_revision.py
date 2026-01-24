@@ -223,6 +223,7 @@ def get_revision_item_map(revision: str) -> dict[str, dict[str, Any]]:
 			"order_index",
 			"content_blob",
 			"is_deleted",
+			"modified",
 		],
 		filters={"revision": revision},
 	)

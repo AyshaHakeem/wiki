@@ -103,7 +103,10 @@ const fetchCrPageResource = createResource({
 });
 
 async function loadCrPage() {
-	if (!currentChangeRequest.value) return;
+	if (!currentChangeRequest.value) {
+		crPage.value = null;
+		return;
+	}
 	isLoading.value = true;
 	try {
 		const result = await fetchCrPageResource.submit({

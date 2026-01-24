@@ -31,7 +31,7 @@
                         variant="ghost"
                         icon="external-link"
                         :title="__('View Space')"
-                        :link="space.doc?.route"
+                        :link="'/' + space.doc?.route"
                     />
                 </div>
                 <p class="text-sm text-ink-gray-5 mt-0.5">{{ space.doc?.route }}</p>

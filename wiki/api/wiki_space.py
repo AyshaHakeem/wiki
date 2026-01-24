@@ -59,38 +59,28 @@ def reorder_wiki_documents(
 	new_parent: str | None,
 	new_index: int,
 	siblings: str,
-	batch: str | None = None,
 ):
 	"""
 	Reorder a Wiki Document by changing its parent and/or position among siblings.
 
 	Args:
-			doc_name: The name of the document being moved (can be a temp_id for draft items)
+			doc_name: The name of the document being moved
 			new_parent: The new parent document name (can be None for root level)
 			new_index: The new index position among siblings
 			siblings: JSON string of sibling document names in the new order
-			batch: Optional batch name for contribution mode
 
 	Returns:
-			For contribution mode: dict with contribution and batch info
-			For direct reorder: None (implicit success)
+			dict with is_contribution: False for direct reorders
 	"""
 	import json
 
 	siblings_list = json.loads(siblings) if isinstance(siblings, str) else siblings
 
-	# Check if this is a draft item (temp_id from a contribution)
-	if doc_name.startswith("temp_"):
-		return _update_draft_item_parent(doc_name, new_parent, new_index, siblings_list)
-
 	doc = frappe.get_doc("Wiki Document", doc_name)
 
 	# Check if user has write permission
-	has_write_permission = frappe.has_permission("Wiki Document", "write", doc=doc)
-
-	# If batch is provided or user doesn't have write permission, create a contribution
-	if batch or not has_write_permission:
-		return _create_reorder_contribution(doc, new_parent, new_index, siblings_list, batch)
+	if not frappe.has_permission("Wiki Document", "write", doc=doc):
+		frappe.throw(_("You do not have permission to reorder this document"))
 
 	# Direct reorder for users with write permission
 	parent_changed = doc.parent_wiki_document != new_parent
@@ -142,83 +132,6 @@ def _batch_update_sort_order(siblings: list[str]) -> None:
 		""",
 		tuple(names + names),
 	)
-
-
-def _create_reorder_contribution(
-	doc, new_parent: str | None, new_index: int, siblings: list, batch: str | None
-) -> dict:
-	"""Create a reorder/move contribution for contribution mode."""
-	import json
-
-	from wiki.frappe_wiki.doctype.wiki_contribution_batch.wiki_contribution_batch import (
-		get_or_create_draft_batch,
-	)
-
-	# Get the wiki space from the document's hierarchy
-	wiki_space = _get_wiki_space_for_document(doc.name)
-	if not wiki_space:
-		frappe.throw(_("Could not determine wiki space for this document"))
-
-	# Get or create batch if not provided
-	if not batch:
-		batch_doc = get_or_create_draft_batch(wiki_space)
-		batch = batch_doc.get("name")
-
-	# Determine if this is a move (parent change) or just a reorder
-	is_move = doc.parent_wiki_document != new_parent
-	operation = "move" if is_move else "reorder"
-
-	# Create the contribution
-	contrib = frappe.new_doc("Wiki Contribution")
-	contrib.batch = batch
-	contrib.operation = operation
-	contrib.target_document = doc.name
-
-	if is_move:
-		contrib.new_parent_ref = new_parent
-		contrib.new_sort_order = new_index
-	else:
-		contrib.proposed_sort_order = new_index
-
-	# Store the full siblings order so we can reconstruct the order during merge
-	contrib.siblings_order = json.dumps(siblings)
-
-	contrib.insert()
-
-	return {
-		"contribution": contrib.name,
-		"batch": batch,
-		"is_contribution": True,
-	}
-
-
-def _update_draft_item_parent(temp_id: str, new_parent: str | None, new_index: int, siblings: list) -> dict:
-	"""Update the parent_ref of a draft contribution (for moving draft items)."""
-	import json
-
-	# Find the contribution with this temp_id
-	contrib = frappe.db.get_value(
-		"Wiki Contribution",
-		{"temp_id": temp_id},
-		["name", "parent_ref"],
-		as_dict=True,
-	)
-
-	if not contrib:
-		frappe.throw(_("Draft contribution not found"))
-
-	# Update the parent_ref, sort order, and siblings order on the contribution
-	frappe.db.set_value(
-		"Wiki Contribution",
-		contrib.name,
-		{
-			"parent_ref": new_parent,
-			"proposed_sort_order": new_index,
-			"siblings_order": json.dumps(siblings),
-		},
-	)
-
-	return {"is_contribution": True}
 
 
 def _get_wiki_space_for_document(doc_name: str) -> str | None:

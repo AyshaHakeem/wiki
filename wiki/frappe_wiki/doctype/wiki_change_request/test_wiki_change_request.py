@@ -119,6 +119,29 @@ class TestWikiChangeRequest(FrappeTestCase):
 		self.assertEqual(cr_doc.status, "Merged")
 		self.assertIsNotNone(cr_doc.merge_revision)
 
+	def test_merge_deletes_wiki_document_when_marked_deleted(self):
+		space = create_test_wiki_space()
+		page = create_test_wiki_document(space.root_group, title="Page to Delete", content="content")
+		page_name = page.name
+		cr = create_change_request(space.name, "CR Delete")
+
+		page_key = frappe.get_value("Wiki Document", page_name, "doc_key")
+
+		# Verify the page exists before merge
+		self.assertTrue(frappe.db.exists("Wiki Document", page_name))
+
+		# Mark the page as deleted in the change request
+		delete_cr_page(cr.name, page_key)
+
+		# Merge the change request
+		merge_change_request(cr.name)
+
+		# Verify the page has been deleted from the live tree
+		self.assertFalse(frappe.db.exists("Wiki Document", page_name))
+
+		cr_doc = frappe.get_doc("Wiki Change Request", cr.name)
+		self.assertEqual(cr_doc.status, "Merged")
+
 	def test_merge_conflict_content_creates_conflict(self):
 		space = create_test_wiki_space()
 		page = create_test_wiki_document(space.root_group, title="Page A", content="v1")

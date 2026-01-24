@@ -15,8 +15,7 @@
 		<div class="flex items-center gap-2">
 			<button
 				v-if="changeCount > 0"
-				class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer"
-				:class="clickableBadgeClass"
+				class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer bg-gray-100 text-gray-700 hover:bg-gray-200"
 				@click="showChangesDialog = true"
 			>
 				<LucideList class="size-3.5" />
@@ -26,8 +25,6 @@
 			<template v-if="changeRequestStatus === 'Draft' || changeRequestStatus === 'Changes Requested'">
 				<Button
 					v-if="canShowMerge"
-					variant="solid"
-					theme="green"
 					size="sm"
 					:loading="mergeResource?.loading"
 					@click="$emit('merge')"
@@ -36,7 +33,6 @@
 				</Button>
 				<Button
 					v-if="changeCount > 0"
-					variant="solid"
 					size="sm"
 					:loading="submitReviewResource?.loading"
 					@click="showSubmitConfirmDialog = true"
@@ -60,6 +56,14 @@
 				<span class="text-sm font-medium text-green-700">
 					{{ __('Approved! Ready to merge.') }}
 				</span>
+				<Button
+					v-if="canShowMerge"
+					size="sm"
+					:loading="mergeResource?.loading"
+					@click="$emit('merge')"
+				>
+					{{ __('Merge') }}
+				</Button>
 			</template>
 		</div>
 
@@ -214,21 +218,6 @@ function confirmSubmit(closeDialog) {
 
 const canShowMerge = computed(() => {
 	return props.canMerge && props.changeCount > 0;
-});
-
-const clickableBadgeClass = computed(() => {
-	switch (props.changeRequestStatus) {
-		case 'Draft':
-			return 'bg-blue-100 text-blue-700 hover:bg-blue-200';
-		case 'In Review':
-			return 'bg-amber-100 text-amber-700 hover:bg-amber-200';
-		case 'Changes Requested':
-			return 'bg-red-100 text-red-700 hover:bg-red-200';
-		case 'Approved':
-			return 'bg-green-100 text-green-700 hover:bg-green-200';
-		default:
-			return 'bg-gray-100 text-gray-700 hover:bg-gray-200';
-	}
 });
 
 function getChangeIcon(changeType) {

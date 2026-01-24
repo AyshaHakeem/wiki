@@ -518,9 +518,13 @@ def diff_change_request(name: str, scope: str = "summary", doc_key: str | None =
 
 	changes = []
 	all_keys = set(base_items) | set(head_items)
-	for key in sorted(all_keys):
+	for key in all_keys:
 		base = normalize(base_items.get(key))
 		head = normalize(head_items.get(key))
+		head_item = head_items.get(key) or {}
+		base_item = base_items.get(key) or {}
+		# Use modified timestamp from head revision item for ordering
+		modified = head_item.get("modified") or base_item.get("modified")
 		if base is None and head is None:
 			continue
 		if base is None and head is not None:
@@ -530,6 +534,7 @@ def diff_change_request(name: str, scope: str = "summary", doc_key: str | None =
 					"change_type": "added",
 					"title": head.get("title"),
 					"is_group": head.get("is_group"),
+					"_modified": modified,
 				}
 			)
 			continue
@@ -540,6 +545,7 @@ def diff_change_request(name: str, scope: str = "summary", doc_key: str | None =
 					"change_type": "deleted",
 					"title": base.get("title"),
 					"is_group": base.get("is_group"),
+					"_modified": modified,
 				}
 			)
 			continue
@@ -563,8 +569,15 @@ def diff_change_request(name: str, scope: str = "summary", doc_key: str | None =
 					"is_group": head.get("is_group")
 					if head.get("is_group") is not None
 					else base.get("is_group"),
+					"_modified": modified,
 				}
 			)
+
+	# Sort by modification time (oldest first = order in which changes were made)
+	changes.sort(key=lambda c: c.get("_modified") or "")
+	# Remove internal _modified field before returning
+	for change in changes:
+		change.pop("_modified", None)
 
 	return changes
 
@@ -1115,12 +1128,26 @@ def apply_merge_revision(space: Document, revision: Document) -> None:
 	ordered_keys = build_tree_order(items)
 	root_doc_key = frappe.get_value("Wiki Document", space.root_group, "doc_key")
 
-	existing_docs = frappe.get_all(
+	# Get all docs in this wiki space using nested set model
+	root_lft, root_rgt = frappe.get_value("Wiki Document", space.root_group, ["lft", "rgt"])
+	space_docs = frappe.get_all(
 		"Wiki Document",
 		fields=["name", "doc_key"],
-		filters={"doc_key": ("in", list(items.keys()))},
+		filters=[
+			["lft", ">=", root_lft],
+			["rgt", "<=", root_rgt],
+			["doc_key", "is", "set"],
+		],
 	)
-	key_to_name = {doc["doc_key"]: doc["name"] for doc in existing_docs}
+	key_to_name = {doc["doc_key"]: doc["name"] for doc in space_docs}
+
+	# Handle deletions: docs that exist in space but not in merge revision
+	for doc_key, doc_name in list(key_to_name.items()):
+		if doc_key == root_doc_key:
+			continue
+		if doc_key not in items:
+			frappe.delete_doc("Wiki Document", doc_name, force=True)
+			del key_to_name[doc_key]
 
 	for doc_key in ordered_keys:
 		item = items[doc_key]
