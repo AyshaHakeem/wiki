@@ -100,12 +100,18 @@
 								</Badge>
 							</div>
 							<p class="text-sm text-ink-gray-5 mt-0.5">
-								{{ getChangeDescription(change.change_type, change.is_group) }}
+								{{ getChangeDescription(change.change_type, change.is_group, change.is_external_link) }}
+							</p>
+							<p v-if="change.is_external_link && change.external_url" class="text-sm text-ink-gray-5 mt-0.5 truncate">
+								<a :href="change.external_url" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">
+									{{ change.external_url }}
+								</a>
 							</p>
 						</div>
 
 						<div class="flex items-center gap-1 text-ink-gray-4 shrink-0">
 							<LucideFolder v-if="change.is_group" class="size-4" />
+							<LucideLink v-else-if="change.is_external_link" class="size-4" />
 							<LucideFileText v-else class="size-4" />
 						</div>
 					</div>
@@ -170,6 +176,7 @@ import LucidePencil from '~icons/lucide/pencil';
 import LucideTrash2 from '~icons/lucide/trash-2';
 import LucideFolder from '~icons/lucide/folder';
 import LucideFileText from '~icons/lucide/file-text';
+import LucideLink from '~icons/lucide/link';
 
 const props = defineProps({
 	isChangeRequestMode: {
@@ -260,10 +267,12 @@ function getChangeLabel(changeType) {
 	}
 }
 
-function getChangeDescription(changeType, isGroup) {
+function getChangeDescription(changeType, isGroup, isExternalLink) {
 	switch (changeType) {
 		case 'added':
-			return isGroup ? __('New group to be created') : __('New page to be created');
+			if (isGroup) return __('New group to be created');
+			if (isExternalLink) return __('New external link added');
+			return __('New page to be created');
 		case 'modified':
 			return __('Content or metadata updated');
 		case 'deleted':

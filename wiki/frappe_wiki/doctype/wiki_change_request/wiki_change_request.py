@@ -515,6 +515,8 @@ def diff_change_request(name: str, scope: str = "summary", doc_key: str | None =
 			"slug": item.get("slug"),
 			"is_group": item.get("is_group"),
 			"is_published": item.get("is_published"),
+			"is_external_link": item.get("is_external_link"),
+			"external_url": item.get("external_url"),
 			"parent_key": item.get("parent_key"),
 			"order_index": item.get("order_index"),
 			"content_hash": item.get("content_hash"),
@@ -550,6 +552,8 @@ def diff_change_request(name: str, scope: str = "summary", doc_key: str | None =
 					"change_type": "added",
 					"title": head.get("title"),
 					"is_group": head.get("is_group"),
+					"is_external_link": head.get("is_external_link"),
+					"external_url": head.get("external_url"),
 					"_modified": modified,
 				}
 			)
@@ -561,6 +565,8 @@ def diff_change_request(name: str, scope: str = "summary", doc_key: str | None =
 					"change_type": "deleted",
 					"title": base.get("title"),
 					"is_group": base.get("is_group"),
+					"is_external_link": base.get("is_external_link"),
+					"external_url": base.get("external_url"),
 					"_modified": modified,
 				}
 			)
@@ -585,6 +591,10 @@ def diff_change_request(name: str, scope: str = "summary", doc_key: str | None =
 					"is_group": head.get("is_group")
 					if head.get("is_group") is not None
 					else base.get("is_group"),
+					"is_external_link": head.get("is_external_link")
+					if head.get("is_external_link") is not None
+					else base.get("is_external_link"),
+					"external_url": head.get("external_url") or base.get("external_url"),
 					"_modified": modified,
 				}
 			)
