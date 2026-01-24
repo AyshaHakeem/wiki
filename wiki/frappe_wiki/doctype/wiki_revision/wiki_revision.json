@@ -1,0 +1,154 @@
+{
+	"actions": [],
+	"allow_rename": 0,
+	"autoname": "hash",
+	"creation": "2026-01-22 00:00:00.000000",
+	"doctype": "DocType",
+	"engine": "InnoDB",
+	"field_order": [
+		"wiki_space",
+		"change_request",
+		"parent_revision",
+		"column_break_main",
+		"message",
+		"is_merge",
+		"is_working",
+		"section_break_meta",
+		"created_by",
+		"created_at",
+		"tree_hash",
+		"content_hash",
+		"doc_count"
+	],
+	"fields": [
+		{
+			"fieldname": "wiki_space",
+			"fieldtype": "Link",
+			"label": "Wiki Space",
+			"options": "Wiki Space",
+			"reqd": 1
+		},
+		{
+			"fieldname": "change_request",
+			"fieldtype": "Link",
+			"label": "Change Request",
+			"options": "Wiki Change Request"
+		},
+		{
+			"fieldname": "parent_revision",
+			"fieldtype": "Link",
+			"label": "Parent Revision",
+			"options": "Wiki Revision"
+		},
+		{
+			"fieldname": "column_break_main",
+			"fieldtype": "Column Break"
+		},
+		{
+			"fieldname": "message",
+			"fieldtype": "Data",
+			"label": "Message"
+		},
+		{
+			"default": "0",
+			"fieldname": "is_merge",
+			"fieldtype": "Check",
+			"label": "Is Merge"
+		},
+		{
+			"default": "0",
+			"fieldname": "is_working",
+			"fieldtype": "Check",
+			"label": "Is Working"
+		},
+		{
+			"fieldname": "section_break_meta",
+			"fieldtype": "Section Break",
+			"label": "Metadata"
+		},
+		{
+			"default": "__user",
+			"fieldname": "created_by",
+			"fieldtype": "Link",
+			"label": "Created By",
+			"options": "User",
+			"read_only": 1
+		},
+		{
+			"fieldname": "created_at",
+			"fieldtype": "Datetime",
+			"label": "Created At",
+			"read_only": 1
+		},
+		{
+			"fieldname": "tree_hash",
+			"fieldtype": "Data",
+			"label": "Tree Hash",
+			"read_only": 1
+		},
+		{
+			"fieldname": "content_hash",
+			"fieldtype": "Data",
+			"label": "Content Hash",
+			"read_only": 1
+		},
+		{
+			"fieldname": "doc_count",
+			"fieldtype": "Int",
+			"label": "Doc Count",
+			"read_only": 1
+		}
+	],
+	"index_web_pages_for_search": 0,
+	"links": [],
+	"modified": "2026-01-22 00:00:00.000000",
+	"modified_by": "Administrator",
+	"module": "Frappe Wiki",
+	"name": "Wiki Revision",
+	"naming_rule": "Random",
+	"owner": "Administrator",
+	"permissions": [
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "System Manager",
+			"share": 1,
+			"write": 1
+		},
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "Wiki Manager",
+			"share": 1,
+			"write": 1
+		},
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "Wiki Approver",
+			"share": 1,
+			"write": 1
+		}
+	],
+	"show_title_field_in_link": 1,
+	"sort_field": "modified",
+	"sort_order": "DESC",
+	"states": [],
+	"title_field": "message",
+	"track_changes": 1
+}

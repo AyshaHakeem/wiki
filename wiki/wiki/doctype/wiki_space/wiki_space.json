@@ -27,7 +27,8 @@
   "section_break_fhui",
   "navbar_items",
   "version_3_tab",
-  "root_group"
+  "root_group",
+  "main_revision"
  ],
  "fields": [
   {
@@ -115,6 +116,13 @@
    "link_filters": "[[\"Wiki Document\",\"is_group\",\"=\",1]]",
    "options": "Wiki Document",
    "unique": 1
+  },
+  {
+   "fieldname": "main_revision",
+   "fieldtype": "Link",
+   "label": "Main Revision",
+   "options": "Wiki Revision",
+   "read_only": 1
   },
   {
    "default": "1",

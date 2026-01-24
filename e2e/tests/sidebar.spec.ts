@@ -1,4 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { getList } from '../helpers/frappe';
+
+interface WikiDocumentRoute {
+	route: string;
+	doc_key: string;
+}
 
 /**
  * Tests for the public-facing wiki sidebar.
@@ -9,6 +15,7 @@ test.describe('Public Sidebar', () => {
 	test.describe('Published Pages Visibility', () => {
 		test('should only display published pages in the public sidebar', async ({
 			page,
+			request,
 		}) => {
 			await page.setViewportSize({ width: 1100, height: 900 });
 
@@ -18,8 +25,11 @@ test.describe('Public Sidebar', () => {
 
 			const spaceLink = page.locator('a[href*="/wiki/spaces/"]').first();
 			await expect(spaceLink).toBeVisible({ timeout: 5000 });
+			const spaceHref = await spaceLink.getAttribute('href');
+			expect(spaceHref).toBeTruthy();
 			await spaceLink.click();
 			await page.waitForLoadState('networkidle');
+			const spaceUrl = spaceHref as string;
 
 			// Create a published page inside the space
 			const createFirstPage = page.locator(
@@ -27,7 +37,7 @@ test.describe('Public Sidebar', () => {
 			);
 			const newPageButton = page.locator('button[title="New Page"]');
 
-			const publishedPageTitle = `Published Page ${Date.now()}`;
+			const publishedPageTitle = `published-page-${Date.now()}`;
 
 			if (
 				await createFirstPage.isVisible({ timeout: 2000 }).catch(() => false)
@@ -40,9 +50,19 @@ test.describe('Public Sidebar', () => {
 			await page.getByLabel('Title').fill(publishedPageTitle);
 			await page
 				.getByRole('dialog')
-				.getByRole('button', { name: 'Create' })
+				.getByRole('button', { name: 'Save Draft' })
 				.click();
 			await page.waitForLoadState('networkidle');
+
+			// Open the newly created page from the sidebar tree
+			await page
+				.locator('aside')
+				.getByText(publishedPageTitle, { exact: true })
+				.click();
+			await page.waitForURL(/\/draft\/[^/?#]+/);
+			const draftMatch = page.url().match(/\/draft\/([^/?#]+)/);
+			expect(draftMatch).toBeTruthy();
+			const docKey = decodeURIComponent(draftMatch?.[1] ?? '');
 
 			// Wait for editor and add content
 			const editor = page.locator('.ProseMirror, [contenteditable="true"]');
@@ -50,64 +70,65 @@ test.describe('Public Sidebar', () => {
 			await editor.click();
 			await page.keyboard.type('This is published content.');
 
-			// Save the page
-			await page.click('button:has-text("Save")');
+			// Save the draft
+			await page.click('button:has-text("Save Draft")');
 			await page.waitForLoadState('networkidle');
 
-			// Publish the page
-			await page
-				.locator(
-					'button:has-text("Save") ~ button, button:has-text("Save") + * button',
-				)
-				.first()
-				.click();
-			await page.waitForSelector('[role="menuitem"]', {
-				state: 'visible',
-				timeout: 5000,
-			});
-			await page.getByRole('menuitem', { name: 'Publish' }).click();
-			await page.waitForLoadState('networkidle');
-			await expect(page.locator('text=Published').first()).toBeVisible({
+			// Submit for review and merge the page
+			await page.getByRole('button', { name: 'Submit for Review' }).click();
+			await page.getByRole('button', { name: 'Submit' }).click();
+			await expect(page).toHaveURL(/\/wiki\/change-requests\//, {
 				timeout: 10000,
 			});
+			await page.getByRole('button', { name: 'Merge' }).click();
+			await expect(
+				page.locator('text=Change request merged').first(),
+			).toBeVisible({ timeout: 15000 });
 
 			// Create an unpublished page
-			const unpublishedPageTitle = `Unpublished Page ${Date.now()}`;
-			await page.locator('button[title="New Page"]').click();
+			await page.goto(spaceUrl);
+			await page.waitForLoadState('networkidle');
+
+			const unpublishedPageTitle = `unpublished-page-${Date.now()}`;
+			const createPageButton = page
+				.locator(
+					'button:has-text("Create First Page"), button[title="New Page"]',
+				)
+				.first();
+			await expect(createPageButton).toBeVisible({ timeout: 15000 });
+			await createPageButton.click();
 			await page.getByLabel('Title').fill(unpublishedPageTitle);
 			await page
 				.getByRole('dialog')
-				.getByRole('button', { name: 'Create' })
+				.getByRole('button', { name: 'Save Draft' })
 				.click();
 			await page.waitForLoadState('networkidle');
 
-			// Wait for editor and add content
+			// Open the newly created draft page and add content (no merge)
+			await page
+				.locator('aside')
+				.getByText(unpublishedPageTitle, { exact: true })
+				.click();
+			await page.waitForURL(/\/draft\/[^/?#]+/);
 			await expect(editor).toBeVisible({ timeout: 10000 });
 			await editor.click();
 			await page.keyboard.type('This is unpublished content.');
-
-			// Save but do NOT publish
-			await page.click('button:has-text("Save")');
-			await page.waitForLoadState('networkidle');
-			await page.waitForTimeout(1000);
-
-			// Go back to the published page in the sidebar
-			const publishedPageInSidebar = page
-				.locator('aside')
-				.locator(`text=${publishedPageTitle}`)
-				.first();
-			await publishedPageInSidebar.click();
+			await page.click('button:has-text("Save Draft")');
 			await page.waitForLoadState('networkidle');
 
-			// Click View Page to go to public route
-			const viewPageButton = page.locator('button:has-text("View Page")');
-			await expect(viewPageButton).toBeVisible({ timeout: 5000 });
-
-			const [publicPage] = await Promise.all([
-				page.context().waitForEvent('page'),
-				viewPageButton.click(),
-			]);
-
+			// Open public page for published content
+			const routes = await getList<WikiDocumentRoute>(
+				request,
+				'Wiki Document',
+				{
+					fields: ['route', 'doc_key'],
+					filters: { doc_key: docKey },
+					limit: 1,
+				},
+			);
+			expect(routes.length).toBe(1);
+			const publicPage = await page.context().newPage();
+			await publicPage.goto(`/${routes[0].route}`);
 			await publicPage.waitForLoadState('networkidle');
 			await publicPage.setViewportSize({ width: 1100, height: 900 });
 
@@ -134,6 +155,7 @@ test.describe('Public Sidebar', () => {
 	test.describe('Sidebar Navigation', () => {
 		test('should update content, URL, active state, and metadata when clicking sidebar links', async ({
 			page,
+			request,
 		}) => {
 			await page.setViewportSize({ width: 1100, height: 900 });
 
@@ -145,9 +167,8 @@ test.describe('Public Sidebar', () => {
 			await expect(spaceLink).toBeVisible({ timeout: 5000 });
 			await spaceLink.click();
 			await page.waitForLoadState('networkidle');
-
-			// Create first published page
-			const firstPageTitle = `First Nav Page ${Date.now()}`;
+			// Create first page
+			const firstPageTitle = `first-nav-page-${Date.now()}`;
 			const createFirstPage = page.locator(
 				'button:has-text("Create First Page")',
 			);
@@ -164,85 +185,71 @@ test.describe('Public Sidebar', () => {
 			await page.getByLabel('Title').fill(firstPageTitle);
 			await page
 				.getByRole('dialog')
-				.getByRole('button', { name: 'Create' })
+				.getByRole('button', { name: 'Save Draft' })
 				.click();
 			await page.waitForLoadState('networkidle');
 
-			// Add content and save
+			// Open and add content to first page
+			await page
+				.locator('aside')
+				.getByText(firstPageTitle, { exact: true })
+				.click();
+			await page.waitForURL(/\/draft\/[^/?#]+/);
+			const draftMatch = page.url().match(/\/draft\/([^/?#]+)/);
+			expect(draftMatch).toBeTruthy();
+			const firstDocKey = decodeURIComponent(draftMatch?.[1] ?? '');
 			const editor = page.locator('.ProseMirror, [contenteditable="true"]');
 			await expect(editor).toBeVisible({ timeout: 10000 });
 			await editor.click();
 			await page.keyboard.type('First page content here.');
-			await page.click('button:has-text("Save")');
+			await page.click('button:has-text("Save Draft")');
 			await page.waitForLoadState('networkidle');
 
-			// Publish first page
-			await page
-				.locator(
-					'button:has-text("Save") ~ button, button:has-text("Save") + * button',
-				)
-				.first()
-				.click();
-			await page.waitForSelector('[role="menuitem"]', {
-				state: 'visible',
-				timeout: 5000,
-			});
-			await page.getByRole('menuitem', { name: 'Publish' }).click();
-			await page.waitForLoadState('networkidle');
-			await expect(page.locator('text=Published').first()).toBeVisible({
-				timeout: 10000,
-			});
-
-			// Create second published page
-			const secondPageTitle = `Second Nav Page ${Date.now()}`;
+			// Create second page in the same change request
+			const secondPageTitle = `second-nav-page-${Date.now()}`;
 			await page.locator('button[title="New Page"]').click();
 			await page.getByLabel('Title').fill(secondPageTitle);
 			await page
 				.getByRole('dialog')
-				.getByRole('button', { name: 'Create' })
+				.getByRole('button', { name: 'Save Draft' })
 				.click();
 			await page.waitForLoadState('networkidle');
 
-			// Add different content and save
+			// Open and add different content to second page
+			await page
+				.locator('aside')
+				.getByText(secondPageTitle, { exact: true })
+				.click();
 			await expect(editor).toBeVisible({ timeout: 10000 });
 			await editor.click();
 			await page.keyboard.type('Second page different content.');
-			await page.click('button:has-text("Save")');
+			await page.click('button:has-text("Save Draft")');
 			await page.waitForLoadState('networkidle');
 
-			// Publish second page
-			await page
-				.locator(
-					'button:has-text("Save") ~ button, button:has-text("Save") + * button',
-				)
-				.first()
-				.click();
-			await page.waitForSelector('[role="menuitem"]', {
-				state: 'visible',
-				timeout: 5000,
-			});
-			await page.getByRole('menuitem', { name: 'Publish' }).click();
-			await page.waitForLoadState('networkidle');
-			await expect(page.locator('text=Published').first()).toBeVisible({
+			// Submit for review and merge both pages
+			await page.getByRole('button', { name: 'Submit for Review' }).click();
+			await page.getByRole('button', { name: 'Submit' }).click();
+			await expect(page).toHaveURL(/\/wiki\/change-requests\//, {
 				timeout: 10000,
 			});
+			await page.getByRole('button', { name: 'Merge' }).click();
+			await expect(
+				page.locator('text=Change request merged').first(),
+			).toBeVisible({ timeout: 15000 });
 
-			// Go to the first page and open public view
-			const firstPageInSidebar = page
-				.locator('aside')
-				.locator(`text=${firstPageTitle}`)
-				.first();
-			await firstPageInSidebar.click();
-			await page.waitForLoadState('networkidle');
-
-			const viewPageButton = page.locator('button:has-text("View Page")');
-			await expect(viewPageButton).toBeVisible({ timeout: 5000 });
-
-			const [publicPage] = await Promise.all([
-				page.context().waitForEvent('page'),
-				viewPageButton.click(),
-			]);
-
+			// Open public view for the first page
+			const routes = await getList<WikiDocumentRoute>(
+				request,
+				'Wiki Document',
+				{
+					fields: ['route', 'doc_key'],
+					filters: { doc_key: firstDocKey },
+					limit: 1,
+				},
+			);
+			expect(routes.length).toBe(1);
+			const publicPage = await page.context().newPage();
+			await publicPage.goto(`/${routes[0].route}`);
 			await publicPage.waitForLoadState('networkidle');
 			await publicPage.setViewportSize({ width: 1100, height: 900 });
 

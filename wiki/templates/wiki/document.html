@@ -191,15 +191,16 @@
                 const tocLinks = document.querySelectorAll('[data-toc-link]');
                 this.headingIds = Array.from(tocLinks).map(link => link.dataset.tocLink);
 
-                if (this.headingIds.length === 0) return;
-
-                // Add anchor links to headings in content
-                this.headingIds.forEach(id => {
-                    const heading = document.getElementById(id);
-                    if (heading) {
+                // Add anchor links to headings in content (even if TOC is empty)
+                document
+                    .querySelectorAll(
+                        '#wiki-content h1[id], #wiki-content h2[id], #wiki-content h3[id], #wiki-content h4[id], #wiki-content h5[id], #wiki-content h6[id]',
+                    )
+                    .forEach(heading => {
                         this.addAnchorLink(heading);
-                    }
-                });
+                    });
+
+                if (this.headingIds.length === 0) return;
 
                 // Set initial active heading
                 this.activeId = this.headingIds[0];

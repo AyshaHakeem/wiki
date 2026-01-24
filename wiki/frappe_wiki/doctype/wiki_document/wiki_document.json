@@ -8,9 +8,13 @@
 	"field_order": [
 		"title",
 		"route",
+		"slug",
+		"doc_key",
 		"column_break_sfff",
 		"is_published",
 		"is_private",
+		"is_external_link",
+		"external_url",
 		"section_break_eooe",
 		"content",
 		"section_break_j5x7",
@@ -75,7 +79,22 @@
 			"fieldtype": "Data",
 			"in_list_view": 1,
 			"in_standard_filter": 1,
-			"label": "Route"
+			"label": "Route",
+			"unique": 1
+		},
+		{
+			"fieldname": "slug",
+			"fieldtype": "Data",
+			"label": "Slug"
+		},
+		{
+			"fieldname": "doc_key",
+			"fieldtype": "Data",
+			"label": "Doc Key",
+			"hidden": 1,
+			"read_only": 1,
+			"unique": 1,
+			"no_copy": 1
 		},
 		{
 			"fieldname": "content",
@@ -109,6 +128,19 @@
 			"fieldname": "is_private",
 			"fieldtype": "Check",
 			"label": "Is Private?"
+		},
+		{
+			"default": "0",
+			"fieldname": "is_external_link",
+			"fieldtype": "Check",
+			"label": "External Link"
+		},
+		{
+			"depends_on": "is_external_link",
+			"fieldname": "external_url",
+			"fieldtype": "Data",
+			"label": "External URL",
+			"options": "URL"
 		}
 	],
 	"grid_page_length": 50,

@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { getDoc } from '../helpers/frappe';
+import { getList } from '../helpers/frappe';
+interface WikiDocumentRoute {
+	route: string;
+	doc_key: string;
+}
 
 // Extend Window interface for Tiptap editor access in tests
 declare global {
@@ -13,13 +17,6 @@ declare global {
 			};
 		};
 	}
-}
-
-interface WikiDocument {
-	name: string;
-	title: string;
-	content: string;
-	route: string;
 }
 
 /**
@@ -44,14 +41,13 @@ test.describe('Public Wiki Pages', () => {
 			await expect(spaceLink).toBeVisible({ timeout: 5000 });
 			await spaceLink.click();
 			await page.waitForLoadState('networkidle');
-
 			// Create a new page with multiple headings
 			const createFirstPage = page.locator(
 				'button:has-text("Create First Page")',
 			);
 			const newPageButton = page.locator('button[title="New Page"]');
 
-			const pageTitle = `TOC Test Page ${Date.now()}`;
+			const pageTitle = `toc-test-page-${Date.now()}`;
 
 			// Click create button
 			if (
@@ -66,9 +62,16 @@ test.describe('Public Wiki Pages', () => {
 			await page.getByLabel('Title').fill(pageTitle);
 			await page
 				.getByRole('dialog')
-				.getByRole('button', { name: 'Create' })
+				.getByRole('button', { name: 'Save Draft' })
 				.click();
 			await page.waitForLoadState('networkidle');
+
+			// Open the newly created page from the tree
+			await page.locator('aside').getByText(pageTitle, { exact: true }).click();
+			await page.waitForURL(/\/draft\/[^/?#]+/);
+			const draftMatch = page.url().match(/\/draft\/([^/?#]+)/);
+			expect(draftMatch).toBeTruthy();
+			const docKey = decodeURIComponent(draftMatch?.[1] ?? '');
 
 			// Wait for editor to be visible and ready
 			const editor = page.locator('.ProseMirror, [contenteditable="true"]');
@@ -121,63 +124,37 @@ That is all.`;
 			await editor.click();
 			await page.waitForTimeout(500);
 
-			// Save the page
-			await page.click('button:has-text("Save")');
+			// Save the draft
+			await page.click('button:has-text("Save Draft")');
 			await page.waitForLoadState('networkidle');
 			// Wait for save to complete in database
 			await page.waitForTimeout(2000);
 
-			// Extract page ID for later API calls
-			const url = page.url();
-			const pageIdMatch = url.match(/\/wiki\/spaces\/[^/]+\/page\/([^/?#]+)/);
-			expect(pageIdMatch).toBeTruthy();
-			const pageId = decodeURIComponent(pageIdMatch?.[1] ?? '');
-
-			// Publish the page via dropdown menu
-			await page
-				.locator(
-					'button:has-text("Save") ~ button, button:has-text("Save") + * button',
-				)
-				.first()
-				.click();
-
-			await page.waitForSelector('[role="menuitem"], [role="option"]', {
-				state: 'visible',
-				timeout: 5000,
-			});
-			await page.getByRole('menuitem', { name: 'Publish' }).click();
-			await page.waitForLoadState('networkidle');
-
-			// Wait for "Published" badge
-			await expect(page.locator('text=Published').first()).toBeVisible({
+			// Submit for review and merge
+			await page.getByRole('button', { name: 'Submit for Review' }).click();
+			await page.getByRole('button', { name: 'Submit' }).click();
+			await expect(page).toHaveURL(/\/wiki\/change-requests\//, {
 				timeout: 10000,
 			});
-
-			// Get the document AFTER publishing to get the correct route and verify content
-			const savedDoc = await getDoc<WikiDocument>(
-				request,
-				'Wiki Document',
-				pageId,
-			);
-			// Log content for debugging
-			console.log(
-				'Saved content preview:',
-				savedDoc.content?.substring(0, 300),
-			);
-			// Verify markdown headings are in the saved content
-			expect(savedDoc.content).toContain('## Introduction');
-			expect(savedDoc.content).toContain('## Conclusion');
-
-			// Click "View Page" to open the public page in a new tab
-			const viewPageButton = page.locator('button:has-text("View Page")');
-			await expect(viewPageButton).toBeVisible({ timeout: 5000 });
+			await page.getByRole('button', { name: 'Merge' }).click();
+			await expect(
+				page.locator('text=Change request merged').first(),
+			).toBeVisible({ timeout: 15000 });
 
 			// Open public page in new tab
-			const [publicPage] = await Promise.all([
-				page.context().waitForEvent('page'),
-				viewPageButton.click(),
-			]);
-
+			const routes = await getList<WikiDocumentRoute>(
+				request,
+				'Wiki Document',
+				{
+					fields: ['route', 'doc_key'],
+					filters: { doc_key: docKey },
+					limit: 1,
+				},
+			);
+			expect(routes.length).toBe(1);
+			const publicUrl = `/${routes[0].route}`;
+			const publicPage = await page.context().newPage();
+			await publicPage.goto(publicUrl);
 			await publicPage.waitForLoadState('networkidle');
 			// Set viewport for TOC visibility (lg breakpoint = 1024px)
 			await publicPage.setViewportSize({ width: 1100, height: 900 });
@@ -255,6 +232,128 @@ That is all.`;
 					}
 				}
 			}
+		});
+	});
+
+	test.describe('Heading Anchors', () => {
+		test('should show hash link on heading hover in public page', async ({
+			page,
+			request,
+		}) => {
+			await page.setViewportSize({ width: 1100, height: 900 });
+
+			await page.goto('/wiki');
+			await page.waitForLoadState('networkidle');
+
+			const spaceLink = page.locator('a[href*="/wiki/spaces/"]').first();
+			await expect(spaceLink).toBeVisible({ timeout: 5000 });
+			await spaceLink.click();
+			await page.waitForLoadState('networkidle');
+
+			const createFirstPage = page.locator(
+				'button:has-text("Create First Page")',
+			);
+			const newPageButton = page.locator('button[title="New Page"]');
+
+			const pageTitle = `anchor-test-page-${Date.now()}`;
+
+			if (
+				await createFirstPage.isVisible({ timeout: 2000 }).catch(() => false)
+			) {
+				await createFirstPage.click();
+			} else {
+				await newPageButton.click();
+			}
+
+			await page.getByLabel('Title').fill(pageTitle);
+			await page
+				.getByRole('dialog')
+				.getByRole('button', { name: 'Save Draft' })
+				.click();
+			await page.waitForLoadState('networkidle');
+
+			await page.locator('aside').getByText(pageTitle, { exact: true }).click();
+			await page.waitForURL(/\/draft\/[^/?#]+/);
+			const draftMatch = page.url().match(/\/draft\/([^/?#]+)/);
+			expect(draftMatch).toBeTruthy();
+			const docKey = decodeURIComponent(draftMatch?.[1] ?? '');
+
+			const editor = page.locator('.ProseMirror, [contenteditable="true"]');
+			await expect(editor).toBeVisible({ timeout: 10000 });
+			await page.waitForFunction(() => window.wikiEditor !== undefined, {
+				timeout: 10000,
+			});
+
+			const markdownContent = `## Heading One
+
+Intro text.
+
+## Heading Two
+
+More text.
+
+## Heading Three
+
+End.`;
+
+			await page.evaluate((content) => {
+				window.wikiEditor.commands.setContent(content, {
+					contentType: 'markdown',
+				});
+			}, markdownContent);
+
+			await expect(editor.locator('h2:has-text("Heading One")')).toBeVisible({
+				timeout: 5000,
+			});
+
+			await editor.click();
+			await page.waitForTimeout(500);
+
+			await page.click('button:has-text("Save Draft")');
+			await page.waitForLoadState('networkidle');
+			await page.waitForTimeout(2000);
+
+			await page.getByRole('button', { name: 'Submit for Review' }).click();
+			await page.getByRole('button', { name: 'Submit' }).click();
+			await expect(page).toHaveURL(/\/wiki\/change-requests\//, {
+				timeout: 10000,
+			});
+			await page.getByRole('button', { name: 'Merge' }).click();
+			await expect(
+				page.locator('text=Change request merged').first(),
+			).toBeVisible({ timeout: 15000 });
+
+			const routes = await getList<WikiDocumentRoute>(
+				request,
+				'Wiki Document',
+				{
+					fields: ['route', 'doc_key'],
+					filters: { doc_key: docKey },
+					limit: 1,
+				},
+			);
+			expect(routes.length).toBe(1);
+			const publicUrl = `/${routes[0].route}`;
+
+			const publicPage = await page.context().newPage();
+			await publicPage.setViewportSize({ width: 1100, height: 900 });
+			await publicPage.goto(publicUrl);
+			await publicPage.waitForLoadState('networkidle');
+
+			const heading = publicPage.locator(
+				'#wiki-content h2:has-text("Heading Two")',
+			);
+			await expect(heading).toBeVisible({ timeout: 10000 });
+			await heading.scrollIntoViewIfNeeded();
+
+			const anchor = heading.locator('.heading-anchor');
+			await expect(anchor).toHaveCount(1);
+			await expect(anchor).toHaveCSS('opacity', '0');
+
+			await heading.hover();
+			await expect(anchor).toHaveCSS('opacity', '1');
+
+			await publicPage.close();
 		});
 	});
 

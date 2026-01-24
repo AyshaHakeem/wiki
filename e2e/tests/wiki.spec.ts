@@ -1,4 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { getList } from '../helpers/frappe';
+
+interface WikiDocumentRoute {
+	route: string;
+	doc_key: string;
+}
 
 /**
  * Tests for the wiki editor and admin functionality.
@@ -75,12 +81,15 @@ test.describe('Wiki Editor', () => {
 		const pageTitle = `Test Page ${Date.now()}`;
 		await titleInput.fill(pageTitle);
 
-		// Click Create button in dialog (use role to be more specific)
+		// Click Save Draft button in dialog (use role to be more specific)
 		await page
 			.getByRole('dialog')
-			.getByRole('button', { name: 'Create' })
+			.getByRole('button', { name: 'Save Draft' })
 			.click();
 		await page.waitForLoadState('networkidle');
+
+		// Open the newly created page from the sidebar tree
+		await page.locator('aside').getByText(pageTitle, { exact: true }).click();
 
 		// Verify we're now in page editing mode - editor should be visible
 		await expect(
@@ -146,12 +155,14 @@ test.describe('Wiki Editor', () => {
 		if (await createFirstPage.isVisible({ timeout: 2000 }).catch(() => false)) {
 			// No pages - create one
 			await createFirstPage.click();
-			await page.getByLabel('Title').fill(`Test Page ${Date.now()}`);
+			const pageTitle = `Test Page ${Date.now()}`;
+			await page.getByLabel('Title').fill(pageTitle);
 			await page
 				.getByRole('dialog')
-				.getByRole('button', { name: 'Create' })
+				.getByRole('button', { name: 'Save Draft' })
 				.click();
 			await page.waitForLoadState('networkidle');
+			await page.locator('aside').getByText(pageTitle, { exact: true }).click();
 		} else {
 			// Pages exist - click on first tree row
 			await pageTreeRow.click();
@@ -163,11 +174,14 @@ test.describe('Wiki Editor', () => {
 			page.locator('.ProseMirror, [contenteditable="true"]'),
 		).toBeVisible({ timeout: 10000 });
 
-		// Verify save button is present (indicates edit mode)
-		await expect(page.locator('button:has-text("Save")')).toBeVisible();
+		// Verify save draft button is present (indicates edit mode)
+		await expect(page.locator('button:has-text("Save Draft")')).toBeVisible();
 	});
 
-	test('should publish page and view it on public route', async ({ page }) => {
+	test('should publish page and view it on public route', async ({
+		page,
+		request,
+	}) => {
 		// Navigate to wiki and click first space
 		await page.goto('/wiki');
 		await page.waitForLoadState('networkidle');
@@ -183,7 +197,7 @@ test.describe('Wiki Editor', () => {
 		);
 		const newPageButton = page.locator('button[title="New Page"]');
 
-		const pageTitle = `E2E Test Page ${Date.now()}`;
+		const pageTitle = `e2e-cr-page-${Date.now()}`;
 		const pageContent = `This is test content created by E2E tests at ${new Date().toISOString()}`;
 
 		// Click create button (either "Create First Page" or "New Page")
@@ -197,9 +211,16 @@ test.describe('Wiki Editor', () => {
 		await page.getByLabel('Title').fill(pageTitle);
 		await page
 			.getByRole('dialog')
-			.getByRole('button', { name: 'Create' })
+			.getByRole('button', { name: 'Save Draft' })
 			.click();
 		await page.waitForLoadState('networkidle');
+
+		// Open the newly created page from the tree
+		await page.locator('aside').getByText(pageTitle, { exact: true }).click();
+		await page.waitForURL(/\/draft\/[^/?#]+/);
+		const draftMatch = page.url().match(/\/draft\/([^/?#]+)/);
+		expect(draftMatch).toBeTruthy();
+		const docKey = decodeURIComponent(draftMatch?.[1] ?? '');
 
 		// Wait for editor to be visible
 		const editor = page.locator('.ProseMirror, [contenteditable="true"]');
@@ -210,77 +231,32 @@ test.describe('Wiki Editor', () => {
 		await page.keyboard.press('Meta+a'); // Select all
 		await page.keyboard.type(pageContent);
 
-		// Save the page
-		await page.click('button:has-text("Save")');
+		// Save the draft
+		await page.click('button:has-text("Save Draft")');
 		await page.waitForLoadState('networkidle');
 
-		// Publish the page via dropdown menu
-		// The menu button is next to the Save button (has MoreVertical icon)
-		const menuButton = page.locator('button:has(svg)').filter({
-			has: page.locator(
-				'[class*="lucide-more-vertical"], [data-lucide="more-vertical"]',
-			),
-		});
-
-		// Fallback: find the dropdown button near Save
-		const dropdownButton = page
-			.locator('button')
-			.filter({
-				hasText: '',
-			})
-			.last();
-
-		// Click the menu/dropdown button
-		if (await menuButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-			await menuButton.click();
-		} else {
-			// Find button after Save that opens dropdown
-			await page
-				.locator(
-					'button:has-text("Save") ~ button, button:has-text("Save") + * button',
-				)
-				.first()
-				.click();
-		}
-
-		// Click Publish in the dropdown menu
-		await page.waitForSelector('[role="menuitem"], [role="option"]', {
-			state: 'visible',
-			timeout: 5000,
-		});
-		// Use role menuitem to avoid matching "Not Published" badges
-		await page.getByRole('menuitem', { name: 'Publish' }).click();
-		await page.waitForLoadState('networkidle');
-
-		// Wait for "Published" badge to appear (replacing "Not Published")
-		await expect(page.locator('text=Published').first()).toBeVisible({
+		// Submit for review and merge
+		await page.getByRole('button', { name: 'Submit for Review' }).click();
+		await page.getByRole('button', { name: 'Submit' }).click();
+		await expect(page).toHaveURL(/\/wiki\/change-requests\//, {
 			timeout: 10000,
 		});
-
-		// Click "View Page" button to open public page
-		const viewPageButton = page.locator('button:has-text("View Page")');
-		await expect(viewPageButton).toBeVisible({ timeout: 5000 });
-
-		// Click View Page - it opens in new tab, so we'll handle the popup
-		const [newPage] = await Promise.all([
-			page.context().waitForEvent('page'),
-			viewPageButton.click(),
-		]);
-
-		// Wait for the new page to load
-		await newPage.waitForLoadState('networkidle');
-
-		// Verify the public page shows the correct title
+		await page.getByRole('button', { name: 'Merge' }).click();
 		await expect(
-			newPage.locator('#wiki-page-title, h1').filter({ hasText: pageTitle }),
-		).toBeVisible({ timeout: 10000 });
+			page.locator('text=Change request merged').first(),
+		).toBeVisible({ timeout: 15000 });
 
 		// Verify the public page shows the content we added
+		const routes = await getList<WikiDocumentRoute>(request, 'Wiki Document', {
+			fields: ['route', 'doc_key'],
+			filters: { doc_key: docKey },
+			limit: 1,
+		});
+		expect(routes.length).toBe(1);
+		await page.goto(`/${routes[0].route}`);
+		await page.waitForLoadState('networkidle');
 		await expect(
-			newPage.locator('#wiki-content, .prose').filter({ hasText: pageContent }),
+			page.locator('#wiki-content, .prose').filter({ hasText: pageContent }),
 		).toBeVisible({ timeout: 10000 });
-
-		// Close the new tab
-		await newPage.close();
 	});
 });

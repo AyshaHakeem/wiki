@@ -2,20 +2,20 @@
 	<div class="flex flex-col h-full">
 		<div class="flex items-center justify-between p-4 border-b border-outline-gray-2 bg-surface-white shrink-0">
 			<div class="flex items-center gap-4">
-				<Button variant="ghost" icon-left="arrow-left" :route="{ name: 'Contributions' }">
+				<Button variant="ghost" icon-left="arrow-left" :route="{ name: 'ChangeRequests' }">
 					{{ __('Back') }}
 				</Button>
-				<div v-if="batch.doc">
+				<div v-if="changeRequest.doc">
 					<div class="flex items-center gap-2">
-						<h1 class="text-xl font-semibold text-ink-gray-9">{{ batch.doc.title }}</h1>
-						<Badge :variant="'subtle'" :theme="getStatusTheme(batch.doc.status)" size="sm">
-							{{ batch.doc.status }}
+						<h1 class="text-xl font-semibold text-ink-gray-9">{{ changeRequest.doc.title }}</h1>
+						<Badge :variant="'subtle'" :theme="getStatusTheme(changeRequest.doc.status)" size="sm">
+							{{ changeRequest.doc.status }}
 						</Badge>
 					</div>
 					<p class="text-sm text-ink-gray-5 mt-0.5">
-						{{ batch.doc.wiki_space_name || batch.doc.wiki_space }}
-						<span v-if="batch.doc.contributor_name">
-							&middot; {{ __('by') }} {{ batch.doc.contributor_name }}
+						{{ changeRequest.doc.wiki_space }}
+						<span v-if="changeRequest.doc.owner">
+							&middot; {{ __('by') }} {{ changeRequest.doc.owner }}
 						</span>
 					</p>
 				</div>
@@ -26,35 +26,35 @@
 					<template #prefix>
 						<LucideX class="size-4" />
 					</template>
-					{{ __('Reject') }}
+					{{ __('Request Changes') }}
 				</Button>
-				<Button variant="solid" theme="green" :loading="approveResource.loading" @click="handleApprove">
+				<Button variant="solid" theme="green" :loading="mergeResource.loading" @click="handleApprove">
 					<template #prefix>
 						<LucideCheck class="size-4" />
 					</template>
-					{{ __('Approve') }}
+					{{ __('Merge') }}
 				</Button>
 			</div>
 
 			<div v-else-if="canWithdraw" class="flex items-center gap-2">
 				<Button variant="outline" :loading="withdrawResource.loading" @click="handleWithdraw">
-					{{ __('Withdraw') }}
+					{{ __('Archive') }}
 				</Button>
 			</div>
 		</div>
 
 		<div class="flex-1 overflow-auto p-4">
 			<div
-				v-if="batch.doc?.status === 'Rejected' && batch.doc?.review_comment"
+				v-if="reviewNote"
 				class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg"
 			>
 				<div class="flex items-start gap-3">
 					<LucideAlertCircle class="size-5 text-red-500 shrink-0 mt-0.5" />
 					<div>
 						<p class="font-medium text-red-800">{{ __('Changes Requested') }}</p>
-						<p class="text-sm text-red-700 mt-1">{{ batch.doc.review_comment }}</p>
+						<p class="text-sm text-red-700 mt-1">{{ reviewNote.comment }}</p>
 						<p class="text-xs text-red-600 mt-2">
-							{{ __('Reviewed by') }} {{ batch.doc.reviewed_by }} {{ __('on') }} {{ formatDate(batch.doc.reviewed_at) }}
+							{{ __('Reviewed by') }} {{ reviewNote.reviewer }} {{ __('on') }} {{ formatDate(reviewNote.reviewed_at) }}
 						</p>
 					</div>
 				</div>
@@ -62,89 +62,61 @@
 
 			<div class="space-y-4">
 				<h3 class="text-lg font-medium text-ink-gray-8">
-					{{ __('Changes') }} ({{ contributions.data?.length || 0 }})
+					{{ __('Changes') }} ({{ changes.data?.length || 0 }})
 				</h3>
 
-				<div v-if="contributions.loading" class="flex items-center justify-center py-8">
+				<div v-if="changes.loading" class="flex items-center justify-center py-8">
 					<LoadingIndicator class="size-8" />
 				</div>
 
-				<div v-else-if="contributions.data?.length" class="space-y-3">
+				<div v-else-if="changes.data?.length" class="space-y-3">
 					<div
-						v-for="contrib in contributions.data"
-						:key="contrib.name"
+						v-for="change in changes.data"
+						:key="change.doc_key"
 						class="border border-outline-gray-2 rounded-lg overflow-hidden"
 					>
-						<!-- Contribution header -->
 						<div
 							class="flex items-center justify-between p-4 bg-surface-gray-1 cursor-pointer"
-							@click="toggleContribution(contrib.name)"
+							@click="toggleChange(change.doc_key)"
 						>
 							<div class="flex items-center gap-3">
 								<div
 									class="flex items-center justify-center size-8 rounded-full shrink-0"
-									:class="getOperationIconClass(contrib.operation)"
+									:class="getChangeIconClass(change.change_type)"
 								>
-									<component :is="getOperationIcon(contrib.operation)" class="size-4" />
+									<component :is="getChangeIcon(change.change_type)" class="size-4" />
 								</div>
 								<div>
 									<div class="flex items-center gap-2">
 										<span class="font-medium text-ink-gray-9">
-											{{ getContributionTitle(contrib) }}
+											{{ change.title || __('Untitled') }}
 										</span>
-										<Badge variant="subtle" :theme="getOperationTheme(contrib.operation)" size="sm">
-											{{ getOperationLabel(contrib.operation) }}
+										<Badge variant="subtle" :theme="getChangeTheme(change.change_type)" size="sm">
+											{{ getChangeLabel(change.change_type) }}
 										</Badge>
 									</div>
 									<p class="text-sm text-ink-gray-5">
-										{{ getContributionDescription(contrib) }}
+										{{ getChangeDescription(change.change_type, change.is_group) }}
 									</p>
 								</div>
 							</div>
 							<LucideChevronDown
 								class="size-5 text-ink-gray-4 transition-transform"
-								:class="{ 'rotate-180': expandedContributions.has(contrib.name) }"
+								:class="{ 'rotate-180': expandedChanges.has(change.doc_key) }"
 							/>
 						</div>
 
-						<!-- Contribution content (expandable) -->
-						<div v-if="expandedContributions.has(contrib.name)" class="border-t border-outline-gray-2">
-							<!-- For edit operations, show diff -->
-							<div v-if="contrib.operation === 'edit'" class="p-4">
-								<div class="grid grid-cols-2 gap-4">
-									<div>
-										<h4 class="text-sm font-medium text-ink-gray-6 mb-2">{{ __('Original') }}</h4>
-										<div class="prose prose-sm max-w-none p-3 bg-surface-gray-1 rounded border border-outline-gray-2 max-h-96 overflow-auto">
-											<div v-html="renderMarkdown(contrib.original_content || '')" />
-										</div>
-									</div>
-									<div>
-										<h4 class="text-sm font-medium text-ink-gray-6 mb-2">{{ __('Proposed') }}</h4>
-										<div class="prose prose-sm max-w-none p-3 bg-surface-gray-1 rounded border border-outline-gray-2 max-h-96 overflow-auto">
-											<div v-html="renderMarkdown(contrib.proposed_content || '')" />
-										</div>
-									</div>
-								</div>
-							</div>
-
-							<!-- For create operations, show proposed content -->
-							<div v-else-if="contrib.operation === 'create'" class="p-4">
-								<h4 class="text-sm font-medium text-ink-gray-6 mb-2">{{ __('New Content') }}</h4>
-								<div class="prose prose-sm max-w-none p-3 bg-surface-gray-1 rounded border border-outline-gray-2 max-h-96 overflow-auto">
-									<div v-html="renderMarkdown(contrib.proposed_content || '')" />
-								</div>
-							</div>
-
-							<!-- For delete, move, reorder - just show info -->
-							<div v-else class="p-4 text-sm text-ink-gray-6">
-								<div v-if="contrib.operation === 'delete'">
-									{{ __('This page will be deleted.') }}
-								</div>
-								<div v-else-if="contrib.operation === 'move'">
-									{{ __('This page will be moved to a new location.') }}
-								</div>
-								<div v-else-if="contrib.operation === 'reorder'">
-									{{ __('This page will be reordered within its parent.') }}
+						<div v-if="expandedChanges.has(change.doc_key)" class="border-t border-outline-gray-2">
+							<div class="p-4">
+								<DiffViewer
+									v-if="diffsByDocKey[change.doc_key]"
+									:old-content="diffsByDocKey[change.doc_key]?.base?.content || ''"
+									:new-content="diffsByDocKey[change.doc_key]?.head?.content || ''"
+									:file-name="change.title || change.doc_key"
+									language="markdown"
+								/>
+								<div v-else class="flex items-center justify-center py-8">
+									<LoadingIndicator class="size-6" />
 								</div>
 							</div>
 						</div>
@@ -152,19 +124,19 @@
 				</div>
 
 				<div v-else class="text-center py-8 text-ink-gray-5">
-					{{ __('No changes in this contribution.') }}
+					{{ __('No changes in this change request.') }}
 				</div>
 			</div>
 		</div>
 
 		<Dialog v-model="showRejectDialog" :options="{ size: 'md' }">
 			<template #body-title>
-				<h3 class="text-xl font-semibold text-ink-gray-9">{{ __('Reject Contribution') }}</h3>
+				<h3 class="text-xl font-semibold text-ink-gray-9">{{ __('Request Changes') }}</h3>
 			</template>
 			<template #body-content>
 				<div class="space-y-4">
 					<p class="text-ink-gray-7">
-						{{ __('Please provide feedback for the contributor explaining why the changes are being rejected.') }}
+						{{ __('Please provide feedback explaining what needs to change.') }}
 					</p>
 					<FormControl
 						v-model="rejectComment"
@@ -184,7 +156,7 @@
 						:loading="rejectResource.loading"
 						@click="handleReject(close)"
 					>
-						{{ __('Reject') }}
+						{{ __('Request Changes') }}
 					</Button>
 				</div>
 			</template>
@@ -194,85 +166,115 @@
 
 <script setup>
 import { ref, computed, reactive } from 'vue';
-import { useRouter } from 'vue-router';
 import { createDocumentResource, createResource, Button, Badge, Dialog, FormControl, LoadingIndicator, toast } from 'frappe-ui';
 import { userResource } from '@/data/user';
-import { isWikiManager } from '@/composables/useContributionMode';
-import { marked } from 'marked';
+import { isWikiManager, currentChangeRequest } from '@/composables/useChangeRequest';
+import DiffViewer from '@/components/DiffViewer.vue';
 import LucideChevronDown from '~icons/lucide/chevron-down';
 import LucideCheck from '~icons/lucide/check';
 import LucideX from '~icons/lucide/x';
 import LucideAlertCircle from '~icons/lucide/alert-circle';
+import LucideArrowUpDown from '~icons/lucide/arrow-up-down';
 import LucidePlus from '~icons/lucide/plus';
 import LucidePencil from '~icons/lucide/pencil';
 import LucideTrash2 from '~icons/lucide/trash-2';
-import LucideMove from '~icons/lucide/move';
-import LucideArrowUpDown from '~icons/lucide/arrow-up-down';
 import LucideFileText from '~icons/lucide/file-text';
 
 const props = defineProps({
-	batchId: {
+	changeRequestId: {
 		type: String,
 		required: true,
 	},
 });
 
-const router = useRouter();
-
 const showRejectDialog = ref(false);
 const rejectComment = ref('');
-const expandedContributions = reactive(new Set());
+const expandedChanges = reactive(new Set());
+const diffsByDocKey = reactive({});
 
-const batch = createDocumentResource({
-	doctype: 'Wiki Contribution Batch',
-	name: props.batchId,
+const changeRequest = createDocumentResource({
+	doctype: 'Wiki Change Request',
+	name: props.changeRequestId,
 	auto: true,
 });
 
-const contributions = createResource({
-	url: 'wiki.frappe_wiki.doctype.wiki_contribution.wiki_contribution.get_batch_contributions',
-	params: { batch: props.batchId },
+const changes = createResource({
+	url: 'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.diff_change_request',
+	params: { name: props.changeRequestId, scope: 'summary' },
 	auto: true,
 });
 
-const approveResource = createResource({
-	url: 'wiki.api.contributions.approve_contribution_batch',
+const diffResource = createResource({
+	url: 'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.diff_change_request',
+});
+
+const mergeResource = createResource({
+	url: 'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.merge_change_request',
 });
 
 const rejectResource = createResource({
-	url: 'wiki.api.contributions.reject_contribution_batch',
+	url: 'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.review_action',
 });
 
 const withdrawResource = createResource({
-	url: 'wiki.frappe_wiki.doctype.wiki_contribution_batch.wiki_contribution_batch.withdraw_batch',
+	url: 'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.archive_change_request',
 });
 
 const isManager = computed(() => isWikiManager());
-const isOwner = computed(() => batch.doc?.contributor === userResource.data?.name);
+const isOwner = computed(() => changeRequest.doc?.owner === userResource.data?.name);
 
 const canReview = computed(() => {
-	return isManager.value && ['Submitted', 'Under Review'].includes(batch.doc?.status);
+	return isManager.value && ['In Review', 'Approved'].includes(changeRequest.doc?.status);
 });
 
 const canWithdraw = computed(() => {
-	return isOwner.value && ['Submitted', 'Under Review'].includes(batch.doc?.status);
+	return isOwner.value && ['In Review', 'Changes Requested'].includes(changeRequest.doc?.status);
 });
 
-function toggleContribution(name) {
-	if (expandedContributions.has(name)) {
-		expandedContributions.delete(name);
-	} else {
-		expandedContributions.add(name);
+const reviewNote = computed(() => {
+	if (changeRequest.doc?.status !== 'Changes Requested') return null;
+	const reviewer = (changeRequest.doc?.reviewers || []).find(
+		(row) => row.status === 'Changes Requested' && row.comment,
+	);
+	if (!reviewer) return null;
+	return {
+		comment: reviewer.comment,
+		reviewer: reviewer.reviewer,
+		reviewed_at: reviewer.reviewed_at,
+	};
+});
+
+async function toggleChange(docKey) {
+	if (expandedChanges.has(docKey)) {
+		expandedChanges.delete(docKey);
+		return;
+	}
+	expandedChanges.add(docKey);
+	if (!diffsByDocKey[docKey]) {
+		try {
+			const result = await diffResource.submit({
+				name: props.changeRequestId,
+				scope: 'page',
+				doc_key: docKey,
+			});
+			diffsByDocKey[docKey] = result;
+		} catch (error) {
+			toast.error(error.messages?.[0] || __('Error loading diff'));
+		}
 	}
 }
 
 async function handleApprove() {
 	try {
-		await approveResource.submit({ batch_name: props.batchId });
-		toast.success(__('Contribution approved and merged'));
-		batch.reload();
+		await mergeResource.submit({ name: props.changeRequestId });
+		toast.success(__('Change request merged'));
+		if (currentChangeRequest.value?.name === props.changeRequestId) {
+			currentChangeRequest.value = null;
+		}
+		changeRequest.reload();
+		await changes.submit({ name: props.changeRequestId, scope: 'summary' });
 	} catch (error) {
-		toast.error(error.messages?.[0] || __('Error approving contribution'));
+		toast.error(error.messages?.[0] || __('Error merging change request'));
 	}
 }
 
@@ -284,133 +286,94 @@ async function handleReject(close) {
 
 	try {
 		await rejectResource.submit({
-			batch_name: props.batchId,
+			name: props.changeRequestId,
+			reviewer: userResource.data?.name,
+			status: 'Changes Requested',
 			comment: rejectComment.value.trim(),
 		});
-		toast.success(__('Contribution rejected'));
+		toast.success(__('Requested changes'));
 		rejectComment.value = '';
 		close();
-		batch.reload();
+		changeRequest.reload();
 	} catch (error) {
-		toast.error(error.messages?.[0] || __('Error rejecting contribution'));
+		toast.error(error.messages?.[0] || __('Error requesting changes'));
 	}
 }
 
 async function handleWithdraw() {
 	try {
-		await withdrawResource.submit({ batch_name: props.batchId });
-		toast.success(__('Contribution withdrawn'));
-		batch.reload();
+		await withdrawResource.submit({ name: props.changeRequestId });
+		toast.success(__('Change request archived'));
+		changeRequest.reload();
 	} catch (error) {
-		toast.error(error.messages?.[0] || __('Error withdrawing contribution'));
+		toast.error(error.messages?.[0] || __('Error archiving change request'));
 	}
 }
 
 function getStatusTheme(status) {
 	switch (status) {
 		case 'Draft': return 'blue';
-		case 'Submitted': return 'orange';
-		case 'Under Review': return 'orange';
+		case 'In Review': return 'orange';
+		case 'Changes Requested': return 'red';
 		case 'Approved': return 'green';
-		case 'Rejected': return 'red';
 		case 'Merged': return 'green';
+		case 'Archived': return 'gray';
 		default: return 'gray';
 	}
 }
 
-const OPERATION_CONFIG = {
-	create: {
-		icon: LucidePlus,
-		iconClass: 'bg-green-100 text-green-600',
-		theme: 'green',
-		label: __('New'),
-	},
-	edit: {
-		icon: LucidePencil,
-		iconClass: 'bg-blue-100 text-blue-600',
-		theme: 'blue',
-		label: __('Edit'),
-	},
-	delete: {
-		icon: LucideTrash2,
-		iconClass: 'bg-red-100 text-red-600',
-		theme: 'red',
-		label: __('Delete'),
-	},
-	move: {
-		icon: LucideMove,
-		iconClass: 'bg-purple-100 text-purple-600',
-		theme: 'purple',
-		label: __('Move'),
-	},
-	reorder: {
-		icon: LucideArrowUpDown,
-		iconClass: 'bg-gray-100 text-gray-600',
-		theme: 'gray',
-		label: __('Reorder'),
-	},
-};
-
-function getOperationIcon(operation) {
-	return OPERATION_CONFIG[operation]?.icon || LucideFileText;
-}
-
-function getOperationIconClass(operation) {
-	return OPERATION_CONFIG[operation]?.iconClass || 'bg-gray-100 text-gray-600';
-}
-
-function getOperationTheme(operation) {
-	return OPERATION_CONFIG[operation]?.theme || 'gray';
-}
-
-function getOperationLabel(operation) {
-	return OPERATION_CONFIG[operation]?.label || operation;
-}
-
-function getContributionTitle(contrib) {
-	if (contrib.operation === 'create') {
-		return contrib.proposed_title || __('Untitled');
+function getChangeIcon(changeType) {
+	switch (changeType) {
+		case 'added': return LucidePlus;
+		case 'deleted': return LucideTrash2;
+		case 'modified': return LucidePencil;
+		case 'reordered': return LucideArrowUpDown;
+		default: return LucideFileText;
 	}
-	if (contrib.operation === 'edit') {
-		return contrib.proposed_title || contrib.original_title || __('Untitled');
-	}
-	return contrib.original_title || contrib.target_route || __('Unknown');
 }
 
-function getContributionDescription(contrib) {
-	switch (contrib.operation) {
-		case 'create':
-			return contrib.proposed_is_group
-				? __('New group to be created')
-				: __('New page to be created');
-		case 'edit':
-			const changes = [];
-			if (contrib.proposed_title && contrib.proposed_title !== contrib.original_title) {
-				changes.push(__('title'));
-			}
-			if (contrib.proposed_content && contrib.proposed_content !== contrib.original_content) {
-				changes.push(__('content'));
-			}
-			return changes.length > 0
-				? __('Changed: {0}', [changes.join(', ')])
-				: __('Content modified');
-		case 'delete':
+function getChangeIconClass(changeType) {
+	switch (changeType) {
+		case 'added': return 'bg-green-100 text-green-600';
+		case 'deleted': return 'bg-red-100 text-red-600';
+		case 'modified': return 'bg-blue-100 text-blue-600';
+		case 'reordered': return 'bg-amber-100 text-amber-600';
+		default: return 'bg-gray-100 text-gray-600';
+	}
+}
+
+function getChangeTheme(changeType) {
+	switch (changeType) {
+		case 'added': return 'green';
+		case 'deleted': return 'red';
+		case 'modified': return 'blue';
+		case 'reordered': return 'orange';
+		default: return 'gray';
+	}
+}
+
+function getChangeLabel(changeType) {
+	switch (changeType) {
+		case 'added': return __('New');
+		case 'deleted': return __('Deleted');
+		case 'modified': return __('Modified');
+		case 'reordered': return __('Reordered');
+		default: return changeType;
+	}
+}
+
+function getChangeDescription(changeType, isGroup) {
+	switch (changeType) {
+		case 'added':
+			return isGroup ? __('New group to be created') : __('New page to be created');
+		case 'deleted':
 			return __('Will be deleted');
-		case 'move':
-			return __('Will be moved to a new location');
-		case 'reorder':
-			return __('Position changed');
+		case 'modified':
+			return __('Content or metadata updated');
+		case 'reordered':
+			return __('Order updated');
 		default:
 			return '';
-	}
-}
-
-function renderMarkdown(content) {
-	if (!content) return '';
-	try {
-		return marked.parse(content);
-	} catch (e) {
-		return content;
 	}
 }
 

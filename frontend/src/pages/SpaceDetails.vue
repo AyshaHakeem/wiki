@@ -31,7 +31,7 @@
                         variant="ghost"
                         icon="external-link"
                         :title="__('View Space')"
-                        :link="space.doc?.route"
+                        :link="'/' + space.doc?.route"
                     />
                 </div>
                 <p class="text-sm text-ink-gray-5 mt-0.5">{{ space.doc?.route }}</p>
@@ -41,9 +41,9 @@
                 <WikiDocumentList
                     :tree-data="mergedTreeData"
                     :space-id="spaceId"
-                    :root-node="space.doc.root_group"
+                    :root-node="mergedTreeData.root_group || space.doc.root_group"
                     :selected-page-id="currentPageId"
-                    :selected-contribution-id="currentContributionId"
+                    :selected-draft-key="currentDraftKey"
                     @refresh="refreshTree"
                 />
             </div>
@@ -55,11 +55,26 @@
             />
         </aside>
 
-        <main class="flex-1 overflow-auto bg-surface-white min-w-0">
-            <router-view
-                :space-id="spaceId"
-                @refresh="refreshTree"
+        <main class="flex-1 flex flex-col bg-surface-white min-w-0">
+            <ContributionBanner
+                :isChangeRequestMode="isChangeRequestMode"
+                :changeRequestStatus="currentChangeRequest?.status || 'Draft'"
+                :changeCount="changeCount"
+                :changes="changesResource.data || []"
+                :submitReviewResource="submitReviewResource"
+                :archiveChangeRequestResource="archiveChangeRequestResource"
+                :mergeResource="mergeChangeRequestResource"
+                :canMerge="isManager"
+                @submit="handleSubmitChangeRequest"
+                @withdraw="handleArchiveChangeRequest"
+                @merge="handleMergeChangeRequest"
             />
+            <div class="flex-1 overflow-auto">
+                <router-view
+                    :space-id="spaceId"
+                    @refresh="refreshTree"
+                />
+            </div>
         </main>
 
         <Dialog v-model="showSettingsDialog">
@@ -166,11 +181,12 @@
 
 <script setup>
 import { ref, computed, watch, toRef } from 'vue';
-import { useRoute } from 'vue-router';
-import { createDocumentResource, createResource, Button, Dialog, Switch, FormControl } from 'frappe-ui';
+import { useRoute, useRouter } from 'vue-router';
+import { createDocumentResource, createResource, Button, Dialog, Switch, FormControl, toast } from 'frappe-ui';
 import WikiDocumentList from '../components/WikiDocumentList.vue';
+import ContributionBanner from '../components/ContributionBanner.vue';
 import { useSidebarResize } from '../composables/useSidebarResize';
-import { useContributionMode, currentBatch } from '../composables/useContributionMode';
+import { useChangeRequestMode, currentChangeRequest, isWikiManager } from '../composables/useChangeRequest';
 
 const props = defineProps({
     spaceId: {
@@ -181,13 +197,23 @@ const props = defineProps({
 
 const route = useRoute();
 
+const router = useRouter();
 const spaceIdRef = toRef(props, 'spaceId');
 const {
-    isContributionMode,
-    contributionsResource,
-    initBatch,
-    loadContributions,
-} = useContributionMode(spaceIdRef);
+    isChangeRequestMode,
+    changeCount,
+    changesResource,
+    initChangeRequest,
+    loadChanges,
+    submitReviewResource,
+    archiveChangeRequestResource,
+    mergeChangeRequestResource,
+    submitForReview,
+    archiveChangeRequest,
+    mergeChangeRequest,
+} = useChangeRequestMode(spaceIdRef);
+
+const isManager = computed(() => isWikiManager());
 
 const showSettingsDialog = ref(false);
 const showUpdateRoutesDialog = ref(false);
@@ -204,7 +230,7 @@ const sidebarRef = ref(null);
 const { sidebarWidth, sidebarResizing, startResize } = useSidebarResize(sidebarRef);
 
 const currentPageId = computed(() => route.params.pageId || null);
-const currentContributionId = computed(() => route.params.contributionId || null);
+const currentDraftKey = computed(() => route.params.docKey || null);
 
 const space = createDocumentResource({
     doctype: 'Wiki Space',
@@ -219,15 +245,6 @@ watch(() => space.doc, (doc) => {
     if (doc) {
         enableFeedbackCollection.value = Boolean(doc.enable_feedback_collection);
         isPublished.value = Boolean(doc.is_published);
-    }
-}, { immediate: true });
-
-watch(() => space.doc, async (doc) => {
-    if (doc && isContributionMode.value) {
-        // Clear shared state immediately to prevent stale data from prior space
-        currentBatch.value = null;
-        await initBatch();
-        await loadContributions();
     }
 }, { immediate: true });
 
@@ -282,166 +299,100 @@ async function updateRoutes(close) {
     }
 }
 
-const wikiTree = createResource({
-    url: '/api/method/wiki.api.wiki_space.get_wiki_tree',
-    params: { space_id: props.spaceId },
-    auto: true,
+const crTree = createResource({
+    url: 'wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request.get_cr_tree',
+    makeParams() {
+        if (!currentChangeRequest.value?.name) {
+            return null;
+        }
+        return { name: currentChangeRequest.value.name };
+    },
+    auto: false,
 });
 
 const mergedTreeData = computed(() => {
-    const liveTree = wikiTree.data;
-    if (!liveTree || !isContributionMode.value) {
-        return liveTree;
+    const tree = crTree.data;
+    if (!tree) {
+        return tree;
     }
 
-    const contributions = contributionsResource.data || [];
-    if (contributions.length === 0) {
-        return liveTree;
-    }
+    const clonedTree = JSON.parse(JSON.stringify(tree));
+    const changeMap = new Map((changesResource.data || []).map((change) => [change.doc_key, change]));
 
-    const mergedTree = JSON.parse(JSON.stringify(liveTree));
-
-    const nodeMap = new Map();
-    const buildNodeMap = (nodes, parent = null) => {
-        for (const node of nodes) {
-            node._parent = parent;
-            nodeMap.set(node.name, node);
-            if (node.children) {
-                buildNodeMap(node.children, node);
-            }
-        }
-    };
-    buildNodeMap(mergedTree.children || []);
-
-    const applySiblingsOrder = (siblingsOrderJson, parentContainer) => {
-        if (!siblingsOrderJson || !parentContainer) return;
-        try {
-            const siblingsOrder = JSON.parse(siblingsOrderJson);
-            for (let i = 0; i < siblingsOrder.length; i++) {
-                const siblingName = siblingsOrder[i];
-                const siblingNode = nodeMap.get(siblingName);
-                if (siblingNode && parentContainer.includes(siblingNode)) {
-                    siblingNode._draftSortOrder = i;
-                }
-            }
-        } catch (e) {
-            console.error('Failed to parse siblings_order:', e);
-        }
-    };
-
-    for (const contrib of contributions) {
-        if (contrib.operation === 'create') {
-            const newNode = {
-                name: contrib.temp_id,
-                title: contrib.proposed_title,
-                is_group: contrib.proposed_is_group,
-                is_published: contrib.proposed_is_published,
-                children: [],
-                _isDraft: true,
-                _contribution: contrib.name,
-                _draftSortOrder: contrib.proposed_sort_order,
-            };
-
-            const parentName = contrib.parent_ref;
-            let parentContainer = null;
-            if (parentName === mergedTree.root_group) {
-                mergedTree.children = mergedTree.children || [];
-                mergedTree.children.push(newNode);
-                parentContainer = mergedTree.children;
-            } else if (nodeMap.has(parentName)) {
-                const parent = nodeMap.get(parentName);
-                parent.children = parent.children || [];
-                parent.children.push(newNode);
-                newNode._parent = parent;
-                parentContainer = parent.children;
-            }
-            nodeMap.set(contrib.temp_id, newNode);
-
-            applySiblingsOrder(contrib.siblings_order, parentContainer);
-
-        } else if (contrib.operation === 'edit') {
-            const node = nodeMap.get(contrib.target_document);
-            if (node) {
-                node._isModified = true;
-                node._contribution = contrib.name;
-                if (contrib.proposed_title) {
-                    node._draftTitle = contrib.proposed_title;
-                }
-            }
-
-        } else if (contrib.operation === 'delete') {
-            const node = nodeMap.get(contrib.target_document);
-            if (node) {
-                node._isDeleted = true;
-                node._contribution = contrib.name;
-            }
-
-        } else if (contrib.operation === 'move') {
-            const node = nodeMap.get(contrib.target_document);
-            if (node) {
-                node._isMoved = true;
-                node._contribution = contrib.name;
-
-                if (node._parent) {
-                    const parentChildren = node._parent.children || [];
-                    const idx = parentChildren.findIndex(c => c.name === node.name);
-                    if (idx !== -1) {
-                        parentChildren.splice(idx, 1);
-                    }
-                } else {
-                    // It's at root level
-                    const idx = mergedTree.children.findIndex(c => c.name === node.name);
-                    if (idx !== -1) {
-                        mergedTree.children.splice(idx, 1);
-                    }
-                }
-
-                const newParentName = contrib.new_parent_ref;
-                if (newParentName === mergedTree.root_group || !newParentName) {
-                    mergedTree.children = mergedTree.children || [];
-                    mergedTree.children.push(node);
-                    node._parent = null;
-                } else if (nodeMap.has(newParentName)) {
-                    const newParent = nodeMap.get(newParentName);
-                    newParent.children = newParent.children || [];
-                    newParent.children.push(node);
-                    node._parent = newParent;
-                }
-            }
-
-        } else if (contrib.operation === 'reorder') {
-            const node = nodeMap.get(contrib.target_document);
-            if (node) {
-                node._isReordered = true;
-                node._contribution = contrib.name;
-                node._draftSortOrder = contrib.proposed_sort_order ?? contrib.new_sort_order;
-
-                const parentContainer = node._parent?.children || mergedTree.children;
-                applySiblingsOrder(contrib.siblings_order, parentContainer);
-            }
-        }
-    }
-
-    const sortChildren = (nodes) => {
+    const applyChanges = (nodes) => {
         if (!nodes) return;
-        nodes.sort((a, b) => {
-            const orderA = a._draftSortOrder ?? a.sort_order ?? 0;
-            const orderB = b._draftSortOrder ?? b.sort_order ?? 0;
-            return orderA - orderB;
-        });
         for (const node of nodes) {
-            sortChildren(node.children);
+            const change = changeMap.get(node.doc_key);
+            if (change) {
+                node._changeType = change.change_type;
+            }
+            if (node.children) {
+                applyChanges(node.children);
+            }
         }
     };
-    sortChildren(mergedTree.children);
 
-    return mergedTree;
+    applyChanges(clonedTree.children || []);
+    return clonedTree;
+});
+
+watch([() => space.doc, isChangeRequestMode], async ([doc, isMode]) => {
+    if (doc && isMode) {
+        currentChangeRequest.value = null;
+        await initChangeRequest();
+        await loadChanges();
+        if (currentChangeRequest.value?.name) {
+            await crTree.reload();
+        }
+    }
+}, { immediate: true });
+
+watch(() => currentChangeRequest.value?.name, async (name) => {
+    if (name) {
+        await loadChanges();
+        await crTree.reload();
+    }
 });
 
 async function refreshTree() {
-    await wikiTree.reload();
-    if (isContributionMode.value) {
-        await loadContributions();
+    if (!currentChangeRequest.value?.name) {
+        return;
+    }
+    await crTree.reload();
+    await loadChanges();
+}
+
+async function handleSubmitChangeRequest() {
+    try {
+        const result = await submitForReview();
+        toast.success(__('Change request submitted for review'));
+        if (result?.name) {
+            router.push({ name: 'ChangeRequestReview', params: { changeRequestId: result.name } });
+        }
+    } catch (error) {
+        toast.error(error.messages?.[0] || __('Error submitting for review'));
+    }
+}
+
+async function handleArchiveChangeRequest() {
+    try {
+        await archiveChangeRequest();
+        toast.success(__('Change request archived'));
+    } catch (error) {
+        toast.error(error.messages?.[0] || __('Error archiving change request'));
+    }
+}
+
+async function handleMergeChangeRequest() {
+    try {
+        await mergeChangeRequest();
+        toast.success(__('Change request merged'));
+        currentChangeRequest.value = null;
+        await initChangeRequest();
+        await loadChanges();
+        await refreshTree();
+    } catch (error) {
+        toast.error(error.messages?.[0] || __('Error merging change request'));
     }
 }
 </script>

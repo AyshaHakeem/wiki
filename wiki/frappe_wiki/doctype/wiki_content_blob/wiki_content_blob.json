@@ -1,0 +1,105 @@
+{
+	"actions": [],
+	"allow_rename": 0,
+	"autoname": "hash",
+	"creation": "2026-01-22 00:00:00.000000",
+	"doctype": "DocType",
+	"engine": "InnoDB",
+	"field_order": [
+		"hash",
+		"content",
+		"content_type",
+		"size",
+		"created_by",
+		"created_at"
+	],
+	"fields": [
+		{
+			"fieldname": "hash",
+			"fieldtype": "Data",
+			"label": "Hash",
+			"reqd": 1,
+			"unique": 1
+		},
+		{
+			"fieldname": "content",
+			"fieldtype": "Long Text",
+			"label": "Content"
+		},
+		{
+			"default": "markdown",
+			"fieldname": "content_type",
+			"fieldtype": "Data",
+			"label": "Content Type"
+		},
+		{
+			"fieldname": "size",
+			"fieldtype": "Int",
+			"label": "Size",
+			"read_only": 1
+		},
+		{
+			"fieldname": "created_by",
+			"fieldtype": "Link",
+			"label": "Created By",
+			"options": "User",
+			"read_only": 1
+		},
+		{
+			"fieldname": "created_at",
+			"fieldtype": "Datetime",
+			"label": "Created At",
+			"read_only": 1
+		}
+	],
+	"index_web_pages_for_search": 0,
+	"links": [],
+	"modified": "2026-01-22 00:00:00.000000",
+	"modified_by": "Administrator",
+	"module": "Frappe Wiki",
+	"name": "Wiki Content Blob",
+	"naming_rule": "Random",
+	"owner": "Administrator",
+	"permissions": [
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "System Manager",
+			"share": 1,
+			"write": 1
+		},
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "Wiki Manager",
+			"share": 1,
+			"write": 1
+		},
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "Wiki Approver",
+			"share": 1,
+			"write": 1
+		}
+	],
+	"sort_field": "modified",
+	"sort_order": "DESC",
+	"states": [],
+	"track_changes": 1
+}

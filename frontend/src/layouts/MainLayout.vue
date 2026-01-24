@@ -41,7 +41,7 @@
 <script setup>
 import { computed } from 'vue';
 import Sidebar from '../components/Sidebar.vue';
-import { canAccessWiki } from '@/composables/useContributionMode';
+import { canAccessWiki } from '@/composables/useChangeRequest';
 
 const hasAccess = computed(() => canAccessWiki());
 </script>

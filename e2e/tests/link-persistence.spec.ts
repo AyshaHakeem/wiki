@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { getDoc } from '../helpers/frappe';
+import { getList } from '../helpers/frappe';
 
 interface WikiDocument {
 	name: string;
 	title: string;
 	content: string;
 	route: string;
+	doc_key?: string;
 }
 
 test.describe('Link Persistence Tests', () => {
@@ -28,7 +29,7 @@ test.describe('Link Persistence Tests', () => {
 		);
 		const newPageButton = page.locator('button[title="New Page"]');
 
-		const pageTitle = `Link Save Test ${Date.now()}`;
+		const pageTitle = `link-save-test-${Date.now()}`;
 
 		if (await createFirstPage.isVisible({ timeout: 2000 }).catch(() => false)) {
 			await createFirstPage.click();
@@ -39,9 +40,12 @@ test.describe('Link Persistence Tests', () => {
 		await page.getByLabel('Title').fill(pageTitle);
 		await page
 			.getByRole('dialog')
-			.getByRole('button', { name: 'Create' })
+			.getByRole('button', { name: 'Save Draft' })
 			.click();
 		await page.waitForLoadState('networkidle');
+
+		// Open the newly created page from the sidebar tree
+		await page.locator('aside').getByText(pageTitle, { exact: true }).click();
 
 		const editor = page.locator('.ProseMirror, [contenteditable="true"]');
 		await expect(editor).toBeVisible({ timeout: 10000 });
@@ -77,26 +81,40 @@ test.describe('Link Persistence Tests', () => {
 		await expect(editorLink).toBeVisible({ timeout: 5000 });
 		await expect(editorLink).toHaveText('Example Website');
 
-		// Save the page
-		const saveButton = page.locator('button:has-text("Save")');
+		// Save the draft
+		const saveButton = page.locator('button:has-text("Save Draft")');
 		await saveButton.click();
 		await page.waitForLoadState('networkidle');
 		await page.waitForTimeout(3000); // Wait for DB commit
 
-		// Get the page ID from URL to verify content via API
-		// URL format: /wiki/spaces/{spaceId}/page/{pageId}
+		// Capture the doc_key from URL before submitting
+		// URL format: /wiki/spaces/{spaceId}/draft/{docKey}
+		await page.waitForURL(/\/draft\/[^/?#]+/);
 		const url = page.url();
-		const pageIdMatch = url.match(/\/wiki\/spaces\/[^/]+\/page\/([^/?#]+)/);
-		expect(pageIdMatch).toBeTruthy();
-		const pageId = decodeURIComponent(pageIdMatch?.[1] ?? '');
+		const draftMatch = url.match(/\/wiki\/spaces\/[^/]+\/draft\/([^/?#]+)/);
+		expect(draftMatch).toBeTruthy();
+		const docKey = decodeURIComponent(draftMatch?.[1] ?? '');
+
+		// Submit for review and merge so the content lands on the live doc
+		await page.getByRole('button', { name: 'Submit for Review' }).click();
+		await page.getByRole('button', { name: 'Submit' }).click();
+		await expect(page).toHaveURL(/\/wiki\/change-requests\//, {
+			timeout: 10000,
+		});
+		await page.getByRole('button', { name: 'Merge' }).click();
+		await expect(
+			page.locator('text=Change request merged').first(),
+		).toBeVisible({ timeout: 15000 });
 
 		// Verify content was saved correctly via API - links should be in markdown format
 		// This tests that the renderMarkdown fix is working correctly
-		const savedDoc = await getDoc<WikiDocument>(
-			request,
-			'Wiki Document',
-			pageId,
-		);
+		const docs = await getList<WikiDocument>(request, 'Wiki Document', {
+			fields: ['name', 'content', 'doc_key'],
+			filters: { doc_key: docKey },
+			limit: 1,
+		});
+		expect(docs.length).toBe(1);
+		const savedDoc = docs[0];
 		expect(savedDoc.content).toContain(
 			'[Example Website](https://example.com)',
 		);

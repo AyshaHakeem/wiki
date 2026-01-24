@@ -14,15 +14,26 @@ const routes = [
 		component: () => import('@/pages/Spaces.vue'),
 	},
 	{
-		path: '/contributions',
-		name: 'Contributions',
+		path: '/change-requests',
+		name: 'ChangeRequests',
 		component: () => import('@/pages/Contributions.vue'),
 	},
 	{
-		path: '/contributions/:batchId',
-		name: 'ContributionReview',
+		path: '/change-requests/:changeRequestId',
+		name: 'ChangeRequestReview',
 		component: () => import('@/pages/ContributionReview.vue'),
 		props: true,
+	},
+	{
+		path: '/contributions',
+		redirect: { name: 'ChangeRequests' },
+	},
+	{
+		path: '/contributions/:batchId',
+		redirect: (to) => ({
+			name: 'ChangeRequestReview',
+			params: { changeRequestId: to.params.batchId },
+		}),
 	},
 	{
 		path: '/spaces/:spaceId',
@@ -41,10 +52,20 @@ const routes = [
 				props: true,
 			},
 			{
-				path: 'draft/:contributionId',
-				name: 'DraftContribution',
+				path: 'draft/:docKey',
+				name: 'DraftChangeRequest',
 				component: () => import('@/components/DraftContributionPanel.vue'),
 				props: true,
+			},
+			{
+				path: 'draft/:contributionId',
+				redirect: (to) => ({
+					name: 'DraftChangeRequest',
+					params: {
+						spaceId: to.params.spaceId,
+						docKey: to.params.contributionId,
+					},
+				}),
 			},
 		],
 	},

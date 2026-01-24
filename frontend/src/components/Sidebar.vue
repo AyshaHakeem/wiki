@@ -11,7 +11,7 @@
 			label: '',
 			items: [
 				{ label: __('Spaces'), icon: LucideRocket, to: { name: 'SpaceList' } },
-				{ label: __('Contributions'), icon: LucideGitBranch, to: { name: 'Contributions' } },
+				{ label: __('Change Requests'), icon: LucideGitBranch, to: { name: 'ChangeRequests' } },
 			]
 		}
 	]"

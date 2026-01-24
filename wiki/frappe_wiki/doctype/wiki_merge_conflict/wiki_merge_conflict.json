@@ -1,0 +1,148 @@
+{
+	"actions": [],
+	"allow_rename": 0,
+	"autoname": "hash",
+	"creation": "2026-01-22 00:00:00.000000",
+	"doctype": "DocType",
+	"engine": "InnoDB",
+	"field_order": [
+		"change_request",
+		"doc_key",
+		"conflict_type",
+		"status",
+		"section_break_payload",
+		"base_payload",
+		"ours_payload",
+		"theirs_payload",
+		"column_break_payload",
+		"resolution",
+		"resolved_payload",
+		"resolved_by",
+		"resolved_at"
+	],
+	"fields": [
+		{
+			"fieldname": "change_request",
+			"fieldtype": "Link",
+			"label": "Change Request",
+			"options": "Wiki Change Request",
+			"reqd": 1
+		},
+		{
+			"fieldname": "doc_key",
+			"fieldtype": "Data",
+			"label": "Doc Key",
+			"reqd": 1
+		},
+		{
+			"fieldname": "conflict_type",
+			"fieldtype": "Select",
+			"label": "Conflict Type",
+			"options": "content\nmeta\ntree",
+			"reqd": 1
+		},
+		{
+			"default": "Open",
+			"fieldname": "status",
+			"fieldtype": "Select",
+			"label": "Status",
+			"options": "Open\nResolved"
+		},
+		{
+			"fieldname": "section_break_payload",
+			"fieldtype": "Section Break",
+			"label": "Payload"
+		},
+		{
+			"fieldname": "base_payload",
+			"fieldtype": "JSON",
+			"label": "Base Payload"
+		},
+		{
+			"fieldname": "ours_payload",
+			"fieldtype": "JSON",
+			"label": "Ours Payload"
+		},
+		{
+			"fieldname": "theirs_payload",
+			"fieldtype": "JSON",
+			"label": "Theirs Payload"
+		},
+		{
+			"fieldname": "column_break_payload",
+			"fieldtype": "Column Break"
+		},
+		{
+			"fieldname": "resolution",
+			"fieldtype": "Select",
+			"label": "Resolution",
+			"options": "ours\ntheirs\nmanual"
+		},
+		{
+			"fieldname": "resolved_payload",
+			"fieldtype": "JSON",
+			"label": "Resolved Payload"
+		},
+		{
+			"fieldname": "resolved_by",
+			"fieldtype": "Link",
+			"label": "Resolved By",
+			"options": "User"
+		},
+		{
+			"fieldname": "resolved_at",
+			"fieldtype": "Datetime",
+			"label": "Resolved At"
+		}
+	],
+	"index_web_pages_for_search": 0,
+	"links": [],
+	"modified": "2026-01-22 00:00:00.000000",
+	"modified_by": "Administrator",
+	"module": "Frappe Wiki",
+	"name": "Wiki Merge Conflict",
+	"naming_rule": "Random",
+	"owner": "Administrator",
+	"permissions": [
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "System Manager",
+			"share": 1,
+			"write": 1
+		},
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "Wiki Manager",
+			"share": 1,
+			"write": 1
+		},
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "Wiki Approver",
+			"share": 1,
+			"write": 1
+		}
+	],
+	"sort_field": "modified",
+	"sort_order": "DESC",
+	"states": [],
+	"track_changes": 1
+}

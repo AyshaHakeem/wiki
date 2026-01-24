@@ -64,7 +64,7 @@ async function getFrappeUIPlugin(isDev) {
 	if (isDev) {
 		try {
 			const module = await import(
-				path.resolve(__dirname, '../frappe-ui/vite/index.js')
+				path.resolve(__dirname, '../../frappe-ui/vite/index.js')
 			);
 			return module.default;
 		} catch (error) {

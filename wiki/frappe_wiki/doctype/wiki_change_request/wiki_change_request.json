@@ -1,0 +1,194 @@
+{
+	"actions": [],
+	"allow_rename": 0,
+	"autoname": "hash",
+	"creation": "2026-01-22 00:00:00.000000",
+	"doctype": "DocType",
+	"engine": "InnoDB",
+	"field_order": [
+		"title",
+		"wiki_space",
+		"column_break_main",
+		"status",
+		"description",
+		"section_break_revisions",
+		"base_revision",
+		"head_revision",
+		"merge_revision",
+		"column_break_revisions",
+		"outdated",
+		"merged_by",
+		"merged_at",
+		"archived_at",
+		"section_break_participants",
+		"reviewers",
+		"participants"
+	],
+	"fields": [
+		{
+			"fieldname": "title",
+			"fieldtype": "Data",
+			"in_list_view": 1,
+			"label": "Title",
+			"reqd": 1
+		},
+		{
+			"fieldname": "wiki_space",
+			"fieldtype": "Link",
+			"in_list_view": 1,
+			"label": "Wiki Space",
+			"options": "Wiki Space",
+			"reqd": 1
+		},
+		{
+			"fieldname": "column_break_main",
+			"fieldtype": "Column Break"
+		},
+		{
+			"default": "Draft",
+			"fieldname": "status",
+			"fieldtype": "Select",
+			"in_list_view": 1,
+			"label": "Status",
+			"options": "Draft\nOpen\nIn Review\nChanges Requested\nApproved\nMerged\nArchived",
+			"reqd": 1
+		},
+		{
+			"fieldname": "description",
+			"fieldtype": "Small Text",
+			"label": "Description"
+		},
+		{
+			"fieldname": "section_break_revisions",
+			"fieldtype": "Section Break",
+			"label": "Revisions"
+		},
+		{
+			"fieldname": "base_revision",
+			"fieldtype": "Link",
+			"label": "Base Revision",
+			"options": "Wiki Revision",
+			"reqd": 1
+		},
+		{
+			"fieldname": "head_revision",
+			"fieldtype": "Link",
+			"label": "Head Revision",
+			"options": "Wiki Revision",
+			"reqd": 1
+		},
+		{
+			"fieldname": "merge_revision",
+			"fieldtype": "Link",
+			"label": "Merge Revision",
+			"options": "Wiki Revision",
+			"read_only": 1
+		},
+		{
+			"fieldname": "column_break_revisions",
+			"fieldtype": "Column Break"
+		},
+		{
+			"default": "0",
+			"fieldname": "outdated",
+			"fieldtype": "Check",
+			"label": "Outdated",
+			"read_only": 1
+		},
+		{
+			"fieldname": "merged_by",
+			"fieldtype": "Link",
+			"label": "Merged By",
+			"options": "User",
+			"read_only": 1
+		},
+		{
+			"fieldname": "merged_at",
+			"fieldtype": "Datetime",
+			"label": "Merged At",
+			"read_only": 1
+		},
+		{
+			"fieldname": "archived_at",
+			"fieldtype": "Datetime",
+			"label": "Archived At",
+			"read_only": 1
+		},
+		{
+			"fieldname": "section_break_participants",
+			"fieldtype": "Section Break",
+			"label": "Participants"
+		},
+		{
+			"fieldname": "reviewers",
+			"fieldtype": "Table",
+			"label": "Reviewers",
+			"options": "Wiki CR Reviewer"
+		},
+		{
+			"fieldname": "participants",
+			"fieldtype": "Table",
+			"label": "Participants",
+			"options": "Wiki CR Participant"
+		}
+	],
+	"index_web_pages_for_search": 0,
+	"links": [],
+	"modified": "2026-01-22 00:00:00.000000",
+	"modified_by": "Administrator",
+	"module": "Frappe Wiki",
+	"name": "Wiki Change Request",
+	"naming_rule": "Random",
+	"owner": "Administrator",
+	"permissions": [
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "System Manager",
+			"share": 1,
+			"write": 1
+		},
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "Wiki Manager",
+			"share": 1,
+			"write": 1
+		},
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "Wiki Approver",
+			"share": 1,
+			"write": 1
+		},
+		{
+			"create": 1,
+			"if_owner": 1,
+			"read": 1,
+			"role": "All",
+			"write": 1
+		}
+	],
+	"show_title_field_in_link": 1,
+	"sort_field": "modified",
+	"sort_order": "DESC",
+	"states": [],
+	"title_field": "title",
+	"track_changes": 1
+}

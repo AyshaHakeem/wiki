@@ -1,0 +1,145 @@
+{
+	"actions": [],
+	"allow_rename": 0,
+	"autoname": "hash",
+	"creation": "2026-01-22 00:00:00.000000",
+	"doctype": "DocType",
+	"engine": "InnoDB",
+	"field_order": [
+		"revision",
+		"doc_key",
+		"title",
+		"slug",
+		"column_break_meta",
+		"is_group",
+		"is_published",
+		"is_external_link",
+		"external_url",
+		"parent_key",
+		"order_index",
+		"content_blob",
+		"is_deleted"
+	],
+	"fields": [
+		{
+			"fieldname": "revision",
+			"fieldtype": "Link",
+			"label": "Revision",
+			"options": "Wiki Revision",
+			"reqd": 1
+		},
+		{
+			"fieldname": "doc_key",
+			"fieldtype": "Data",
+			"label": "Doc Key",
+			"reqd": 1
+		},
+		{
+			"fieldname": "title",
+			"fieldtype": "Data",
+			"label": "Title"
+		},
+		{
+			"fieldname": "slug",
+			"fieldtype": "Data",
+			"label": "Slug"
+		},
+		{
+			"fieldname": "column_break_meta",
+			"fieldtype": "Column Break"
+		},
+		{
+			"fieldname": "is_group",
+			"fieldtype": "Check",
+			"label": "Is Group"
+		},
+		{
+			"fieldname": "is_published",
+			"fieldtype": "Check",
+			"label": "Is Published"
+		},
+		{
+			"default": "0",
+			"fieldname": "is_external_link",
+			"fieldtype": "Check",
+			"label": "External Link"
+		},
+		{
+			"fieldname": "external_url",
+			"fieldtype": "Data",
+			"label": "External URL"
+		},
+		{
+			"fieldname": "parent_key",
+			"fieldtype": "Data",
+			"label": "Parent Key"
+		},
+		{
+			"fieldname": "order_index",
+			"fieldtype": "Int",
+			"label": "Order Index"
+		},
+		{
+			"fieldname": "content_blob",
+			"fieldtype": "Link",
+			"label": "Content Blob",
+			"options": "Wiki Content Blob"
+		},
+		{
+			"default": "0",
+			"fieldname": "is_deleted",
+			"fieldtype": "Check",
+			"label": "Is Deleted"
+		}
+	],
+	"index_web_pages_for_search": 0,
+	"links": [],
+	"modified": "2026-01-22 00:00:00.000000",
+	"modified_by": "Administrator",
+	"module": "Frappe Wiki",
+	"name": "Wiki Revision Item",
+	"naming_rule": "Random",
+	"owner": "Administrator",
+	"permissions": [
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "System Manager",
+			"share": 1,
+			"write": 1
+		},
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "Wiki Manager",
+			"share": 1,
+			"write": 1
+		},
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "Wiki Approver",
+			"share": 1,
+			"write": 1
+		}
+	],
+	"sort_field": "modified",
+	"sort_order": "DESC",
+	"states": [],
+	"track_changes": 1
+}

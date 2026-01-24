@@ -1,0 +1,17 @@
+Date: 2026-01-22
+
+PRD implementation status (high level):
+- Backend CR workflow, revisions, merge, diff, and review endpoints: implemented.
+- Permissions: merge restricted to Wiki Manager/Approver/System Manager; review actions limited to reviewer or manager/approver.
+- Change request APIs for “my CRs” and “pending reviews”: implemented.
+- Frontend CR view/diff integration: implemented (DiffViewer via @pierre/diffs), routes swapped from contributions -> CRs.
+
+Tests:
+- Added/updated CR permission tests and merge/review tests.
+- Ran: bench --site wiki.localhost run-tests --app wiki --module wiki.frappe_wiki.doctype.wiki_change_request.test_wiki_change_request (passing)
+
+Outstanding / next-most-important from PRD:
+- Enforce “no direct Wiki Document edits” across APIs/UI (removal or guardrails).
+- Background jobs: outdated CR marking + merge queue.
+- Conflict resolution workflow (persist/resolution endpoints & merge retry).
+- Clean up legacy contribution UI/API and permissions.

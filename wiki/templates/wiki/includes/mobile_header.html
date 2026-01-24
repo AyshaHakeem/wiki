@@ -142,6 +142,7 @@
                 {% endif %}
             </div>
             <button @click="closeSidebar()"
+                    aria-label="Close sidebar"
                     class="p-2 text-[var(--ink-gray-5)] hover:text-[var(--ink-gray-9)] hover:bg-[var(--surface-gray-2)] rounded-md transition-colors duration-200 flex-shrink-0">
                 {{ render_icon("x") }}
             </button>

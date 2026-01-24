@@ -5,7 +5,7 @@
         tag="div"
         :list="localItems"
         :group="{ name: 'wiki-tree' }"
-        item-key="name"
+        item-key="doc_key"
         ghost-class="dragging-ghost"
         drag-class="dragging-item"
         handle=".drag-handle"
@@ -31,43 +31,41 @@
                         <button 
                             v-if="element.is_group" 
                             class="p-0.5 hover:bg-surface-gray-3 rounded"
-                            @click.stop="toggleExpanded(element.name)"
+                            @click.stop="toggleExpanded(element.doc_key)"
                         >
                             <LucideChevronRight 
                                 class="size-4 text-ink-gray-5 transition-transform duration-200" 
-                                :class="{ 'rotate-90': isExpanded(element.name) }"
+                                :class="{ 'rotate-90': isExpanded(element.doc_key) }"
                             />
                         </button>
                         <div v-else class="w-4" />
 
                         <LucideFolder v-if="element.is_group" class="size-4 text-ink-gray-5 flex-shrink-0" />
+                        <LucideLink v-else-if="element.is_external_link" class="size-4 text-ink-gray-5 flex-shrink-0" />
                         <LucideFileText v-else class="size-4 text-ink-gray-5 flex-shrink-0" />
 
                         <span
                             class="text-sm truncate"
                             :class="getTitleClass(element)"
                         >
-                            {{ element._draftTitle || element.title }}
+                            {{ element.title }}
                         </span>
 
-                        <Badge v-if="element._isDraft" variant="subtle" theme="blue" size="sm">
-                            {{ __('New') }}
-                        </Badge>
-                        <Badge v-else-if="element._isDeleted" variant="subtle" theme="red" size="sm">
-                            {{ __('Deleted') }}
-                        </Badge>
-                        <Badge v-else-if="element._isMoved" variant="subtle" theme="purple" size="sm">
-                            {{ __('Moved') }}
-                        </Badge>
-                        <Badge v-else-if="element._isModified" variant="subtle" theme="blue" size="sm">
-                            {{ __('Modified') }}
-                        </Badge>
-                        <Badge v-else-if="element._isReordered" variant="subtle" theme="gray" size="sm">
-                            {{ __('Reordered') }}
-                        </Badge>
-                        <Badge v-else-if="!element.is_group && !element.is_published" variant="subtle" theme="orange" size="sm">
-                            {{ __('Not Published') }}
-                        </Badge>
+						<Badge v-if="element._changeType === 'added'" variant="subtle" theme="blue" size="sm">
+							{{ __('New') }}
+						</Badge>
+						<Badge v-else-if="element._changeType === 'deleted'" variant="subtle" theme="red" size="sm">
+							{{ __('Deleted') }}
+						</Badge>
+						<Badge v-else-if="element._changeType === 'modified'" variant="subtle" theme="blue" size="sm">
+							{{ __('Modified') }}
+						</Badge>
+						<Badge v-else-if="element._changeType === 'reordered'" variant="subtle" theme="orange" size="sm">
+							{{ __('Reordered') }}
+						</Badge>
+						<Badge v-else-if="!element.is_group && !element.is_published" variant="subtle" theme="orange" size="sm">
+							{{ __('Not Published') }}
+						</Badge>
                     </div>
 
                     <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" @click.stop>
@@ -79,17 +77,19 @@
                     </div>
                 </div>
 
-                <div v-if="element.is_group" v-show="isExpanded(element.name)">
+                <div v-if="element.is_group" v-show="isExpanded(element.doc_key)">
                     <NestedDraggable
                         :items="element.children || []"
                         :level="level + 1"
-                        :parent-name="element.name"
+                        :parent-name="element.doc_key"
                         :space-id="spaceId"
                         :selected-page-id="selectedPageId"
-                        :selected-contribution-id="selectedContributionId"
+                        :selected-draft-key="selectedDraftKey"
                         @create="(parent, isGroup) => emit('create', parent, isGroup)"
                         @delete="(n) => emit('delete', n)"
                         @rename="(n) => emit('rename', n)"
+                        @external-link="(parent) => emit('external-link', parent)"
+                        @edit-external-link="(el) => emit('edit-external-link', el)"
                         @update="handleNestedUpdate"
                     />
                 </div>
@@ -102,11 +102,13 @@
 import { ref, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStorage } from '@vueuse/core';
-import { Dropdown, Badge, Button, createResource, toast } from 'frappe-ui';
+import { Dropdown, Badge, Button, toast } from 'frappe-ui';
 import draggable from 'vuedraggable';
+import { useChangeRequest, currentChangeRequest } from '@/composables/useChangeRequest';
 import LucideChevronRight from '~icons/lucide/chevron-right';
 import LucideFolder from '~icons/lucide/folder';
 import LucideFileText from '~icons/lucide/file-text';
+import LucideLink from '~icons/lucide/link';
 import LucideMoreHorizontal from '~icons/lucide/more-horizontal';
 import LucideGripVertical from '~icons/lucide/grip-vertical';
 
@@ -135,14 +137,15 @@ const props = defineProps({
         type: String,
         default: null,
     },
-    selectedContributionId: {
+    selectedDraftKey: {
         type: String,
         default: null,
     },
 });
 
-const emit = defineEmits(['create', 'delete', 'update', 'rename']);
+const emit = defineEmits(['create', 'delete', 'update', 'rename', 'external-link', 'edit-external-link']);
 const router = useRouter();
+const { updatePage } = useChangeRequest();
 
 const localItems = ref([...props.items]);
 
@@ -162,41 +165,43 @@ function toggleExpanded(name) {
 }
 
 function handleRowClick(element) {
-    if (element._isDeleted) {
-        return;
-    }
-
-    if (element._isDraft) {
-        if (element.is_group) {
-            // Draft groups can still be expanded/collapsed
-            toggleExpanded(element.name);
-        } else {
-            router.push({
-                name: 'DraftContribution',
-                params: { spaceId: props.spaceId, contributionId: element._contribution }
-            });
-        }
+    if (element._changeType === 'deleted') {
         return;
     }
 
     if (element.is_group) {
-        toggleExpanded(element.name);
-    } else {
-        router.push({ name: 'SpacePage', params: { spaceId: props.spaceId, pageId: element.name } });
+        toggleExpanded(element.doc_key);
+        return;
     }
+
+    // External links open edit dialog instead of navigating
+    if (element.is_external_link) {
+        emit('edit-external-link', element);
+        return;
+    }
+
+    if (element.document_name) {
+        router.push({ name: 'SpacePage', params: { spaceId: props.spaceId, pageId: element.document_name } });
+        return;
+    }
+
+    router.push({
+        name: 'DraftChangeRequest',
+        params: { spaceId: props.spaceId, docKey: element.doc_key }
+    });
 }
 
 function getRowClasses(element) {
     const classes = [];
 
-    const isSelectedPage = !element.is_group && element.name === props.selectedPageId;
-    const isSelectedDraft = element._isDraft && element._contribution === props.selectedContributionId;
+    const isSelectedPage = !element.is_group && element.document_name === props.selectedPageId;
+    const isSelectedDraft = !element.document_name && element.doc_key === props.selectedDraftKey;
 
     if (isSelectedPage || isSelectedDraft) {
         classes.push('bg-surface-gray-3');
     }
 
-    if (element._isDeleted) {
+    if (element._changeType === 'deleted') {
         classes.push('cursor-not-allowed', 'opacity-60');
     } else {
         classes.push('cursor-pointer');
@@ -206,10 +211,10 @@ function getRowClasses(element) {
 }
 
 function getTitleClass(element) {
-    if (element._isDeleted) {
+    if (element._changeType === 'deleted') {
         return 'text-ink-gray-4 line-through';
     }
-    if (element._isDraft || element.is_published || element.is_group) {
+    if (element.is_published || element.is_group) {
         return 'text-ink-gray-8';
     }
     return 'text-ink-gray-5';
@@ -234,27 +239,22 @@ function handleNestedUpdate(payload) {
     emit('update', payload);
 }
 
-function createPublishResource(element) {
-    return createResource({
-        url: 'frappe.client.set_value',
-        makeParams() {
-            return {
-                doctype: 'Wiki Document',
-                name: element.name,
-                fieldname: {
-                    is_published: element.is_published ? 0 : 1,
-                },
-            };
-        },
-        onSuccess() {
-            const action = element.is_published ? __('unpublished') : __('published');
-            toast.success(__('Page {0}', [action]));
-            emit('update', { type: 'refresh' });
-        },
-        onError(error) {
-            toast.error(error.messages?.[0] || __('Error updating publish status'));
-        },
-    });
+async function togglePublish(element) {
+    if (!currentChangeRequest.value) {
+        toast.error(__('No active change request'));
+        return;
+    }
+    const newStatus = element.is_published ? 0 : 1;
+    try {
+        await updatePage(currentChangeRequest.value.name, element.doc_key, {
+            is_published: newStatus,
+        });
+        const action = element.is_published ? __('unpublished') : __('published');
+        toast.success(__('Page {0}', [action]));
+        emit('update', { type: 'refresh' });
+    } catch (error) {
+        toast.error(error.messages?.[0] || __('Error updating publish status'));
+    }
 }
 
 function getDropdownOptions(element) {
@@ -265,12 +265,17 @@ function getDropdownOptions(element) {
                 {
                     label: __('Add Page'),
                     icon: 'file-plus',
-                    onClick: () => emit('create', element.name, false),
+                    onClick: () => emit('create', element.doc_key, false),
                 },
                 {
                     label: __('Add Group'),
                     icon: 'folder-plus',
-                    onClick: () => emit('create', element.name, true),
+                    onClick: () => emit('create', element.doc_key, true),
+                },
+                {
+                    label: __('Add External Link'),
+                    icon: 'link',
+                    onClick: () => emit('external-link', element.doc_key),
                 },
                 {
                     label: __('Rename'),
@@ -289,10 +294,7 @@ function getDropdownOptions(element) {
         options.push({
             label: element.is_published ? __('Unpublish') : __('Publish'),
             icon: element.is_published ? 'eye-off' : 'eye',
-            onClick: () => {
-                const resource = createPublishResource(element);
-                resource.submit();
-            },
+            onClick: () => togglePublish(element),
         });
     }
 

@@ -1,6 +1,6 @@
 <template>
 	<div
-		v-if="isContributionMode"
+		v-if="isChangeRequestMode"
 		class="contribution-banner px-4 py-3 flex items-center justify-between gap-4"
 		:class="bannerClass"
 	>
@@ -14,51 +14,55 @@
 
 		<div class="flex items-center gap-2">
 			<button
-				v-if="contributionCount > 0"
-				class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer"
-				:class="clickableBadgeClass"
+				v-if="changeCount > 0"
+				class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer bg-gray-100 text-gray-700 hover:bg-gray-200"
 				@click="showChangesDialog = true"
 			>
 				<LucideList class="size-3.5" />
-				{{ contributionCount }} {{ contributionCount === 1 ? __('change') : __('changes') }}
+				{{ changeCount }} {{ changeCount === 1 ? __('change') : __('changes') }}
 			</button>
 
-			<template v-if="batchStatus === 'Draft'">
+			<template v-if="changeRequestStatus === 'Draft' || changeRequestStatus === 'Changes Requested'">
 				<Button
-					v-if="contributionCount > 0"
-					variant="solid"
+					v-if="canShowMerge"
 					size="sm"
-					:loading="submitBatchResource?.loading"
+					:loading="mergeResource?.loading"
+					@click="$emit('merge')"
+				>
+					{{ __('Merge') }}
+				</Button>
+				<Button
+					v-if="changeCount > 0"
+					size="sm"
+					:loading="submitReviewResource?.loading"
 					@click="showSubmitConfirmDialog = true"
 				>
 					{{ __('Submit for Review') }}
 				</Button>
 			</template>
 
-			<template v-else-if="batchStatus === 'Submitted' || batchStatus === 'Under Review'">
+			<template v-else-if="changeRequestStatus === 'In Review'">
 				<Button
 					variant="outline"
 					size="sm"
-					:loading="withdrawBatchResource?.loading"
+					:loading="archiveChangeRequestResource?.loading"
 					@click="$emit('withdraw')"
 				>
-					{{ __('Withdraw') }}
+					{{ __('Archive') }}
 				</Button>
 			</template>
 
-			<template v-else-if="batchStatus === 'Approved'">
+			<template v-else-if="changeRequestStatus === 'Approved'">
 				<span class="text-sm font-medium text-green-700">
-					{{ __('Approved! Awaiting merge.') }}
+					{{ __('Approved! Ready to merge.') }}
 				</span>
-			</template>
-
-			<template v-else-if="batchStatus === 'Rejected'">
 				<Button
-					variant="outline"
+					v-if="canShowMerge"
 					size="sm"
-					@click="$emit('revise')"
+					:loading="mergeResource?.loading"
+					@click="$emit('merge')"
 				>
-					{{ __('Revise & Resubmit') }}
+					{{ __('Merge') }}
 				</Button>
 			</template>
 		</div>
@@ -75,38 +79,38 @@
 			<template #body-content>
 				<div class="space-y-3 max-h-[60vh] overflow-y-auto">
 					<div
-						v-for="contrib in contributions"
-						:key="contrib.name"
+						v-for="change in changes"
+						:key="change.doc_key"
 						class="flex items-start gap-3 p-3 rounded-lg border border-outline-gray-2 hover:bg-surface-gray-1"
 					>
 						<div
 							class="flex items-center justify-center size-8 rounded-full shrink-0"
-							:class="getOperationIconClass(contrib.operation)"
+							:class="getChangeIconClass(change.change_type)"
 						>
-							<component :is="getOperationIcon(contrib.operation)" class="size-4" />
+							<component :is="getChangeIcon(change.change_type)" class="size-4" />
 						</div>
 
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2">
 								<span class="font-medium text-ink-gray-9 truncate">
-									{{ getContributionTitle(contrib) }}
+									{{ change.title || __('Untitled') }}
 								</span>
-								<Badge variant="subtle" :theme="getOperationTheme(contrib.operation)" size="sm">
-									{{ getOperationLabel(contrib.operation) }}
+								<Badge variant="subtle" :theme="getChangeTheme(change.change_type)" size="sm">
+									{{ getChangeLabel(change.change_type) }}
 								</Badge>
 							</div>
 							<p class="text-sm text-ink-gray-5 mt-0.5">
-								{{ getContributionDescription(contrib) }}
+								{{ getChangeDescription(change.change_type, change.is_group) }}
 							</p>
 						</div>
 
 						<div class="flex items-center gap-1 text-ink-gray-4 shrink-0">
-							<LucideFolder v-if="contrib.proposed_is_group" class="size-4" />
+							<LucideFolder v-if="change.is_group" class="size-4" />
 							<LucideFileText v-else class="size-4" />
 						</div>
 					</div>
 
-					<div v-if="contributions.length === 0" class="text-center py-8 text-ink-gray-5">
+					<div v-if="changes.length === 0" class="text-center py-8 text-ink-gray-5">
 						{{ __('No pending changes') }}
 					</div>
 				</div>
@@ -129,10 +133,10 @@
 			</template>
 			<template #body-content>
 				<p class="text-ink-gray-7">
-					{{ __('Are you sure you want to submit your changes for review? A reviewer will be notified to review your contribution.') }}
+					{{ __('Are you sure you want to submit your changes for review?') }}
 				</p>
 				<p class="text-sm text-ink-gray-5 mt-2">
-					{{ __('You have {0} pending {1}.', [contributionCount, contributionCount === 1 ? __('change') : __('changes')]) }}
+					{{ __('You have {0} pending {1}.', [changeCount, changeCount === 1 ? __('change') : __('changes')]) }}
 				</p>
 			</template>
 			<template #actions="{ close }">
@@ -140,7 +144,7 @@
 					<Button variant="outline" @click="close">{{ __('Cancel') }}</Button>
 					<Button
 						variant="solid"
-						:loading="submitBatchResource?.loading"
+						:loading="submitReviewResource?.loading"
 						@click="confirmSubmit(close)"
 					>
 						{{ __('Submit') }}
@@ -159,43 +163,50 @@ import LucideClock from '~icons/lucide/clock';
 import LucideCheckCircle from '~icons/lucide/check-circle';
 import LucideXCircle from '~icons/lucide/x-circle';
 import LucideAlertCircle from '~icons/lucide/alert-circle';
+import LucideArrowUpDown from '~icons/lucide/arrow-up-down';
 import LucideList from '~icons/lucide/list';
 import LucidePlus from '~icons/lucide/plus';
 import LucidePencil from '~icons/lucide/pencil';
 import LucideTrash2 from '~icons/lucide/trash-2';
-import LucideMove from '~icons/lucide/move';
-import LucideArrowUpDown from '~icons/lucide/arrow-up-down';
 import LucideFolder from '~icons/lucide/folder';
 import LucideFileText from '~icons/lucide/file-text';
 
 const props = defineProps({
-	isContributionMode: {
+	isChangeRequestMode: {
 		type: Boolean,
 		default: false,
 	},
-	batchStatus: {
+	changeRequestStatus: {
 		type: String,
 		default: 'Draft',
 	},
-	contributionCount: {
+	changeCount: {
 		type: Number,
 		default: 0,
 	},
-	contributions: {
+	changes: {
 		type: Array,
 		default: () => [],
 	},
-	submitBatchResource: {
+	submitReviewResource: {
 		type: Object,
 		default: null,
 	},
-	withdrawBatchResource: {
+	archiveChangeRequestResource: {
 		type: Object,
 		default: null,
+	},
+	mergeResource: {
+		type: Object,
+		default: null,
+	},
+	canMerge: {
+		type: Boolean,
+		default: false,
 	},
 });
 
-const emit = defineEmits(['submit', 'withdraw', 'revise']);
+const emit = defineEmits(['submit', 'withdraw', 'merge']);
 
 const showChangesDialog = ref(false);
 const showSubmitConfirmDialog = ref(false);
@@ -205,168 +216,128 @@ function confirmSubmit(closeDialog) {
 	emit('submit');
 }
 
-const clickableBadgeClass = computed(() => {
-	switch (props.batchStatus) {
-		case 'Draft':
-			return 'bg-blue-100 text-blue-700 hover:bg-blue-200';
-		case 'Submitted':
-		case 'Under Review':
-			return 'bg-amber-100 text-amber-700 hover:bg-amber-200';
-		case 'Approved':
-			return 'bg-green-100 text-green-700 hover:bg-green-200';
-		case 'Rejected':
-			return 'bg-red-100 text-red-700 hover:bg-red-200';
-		default:
-			return 'bg-gray-100 text-gray-700 hover:bg-gray-200';
-	}
+const canShowMerge = computed(() => {
+	return props.canMerge && props.changeCount > 0;
 });
 
-function getOperationIcon(operation) {
-	switch (operation) {
-		case 'create': return LucidePlus;
-		case 'edit': return LucidePencil;
-		case 'delete': return LucideTrash2;
-		case 'move': return LucideMove;
-		case 'reorder': return LucideArrowUpDown;
+function getChangeIcon(changeType) {
+	switch (changeType) {
+		case 'added': return LucidePlus;
+		case 'modified': return LucidePencil;
+		case 'deleted': return LucideTrash2;
+		case 'reordered': return LucideArrowUpDown;
 		default: return LucideFileText;
 	}
 }
 
-function getOperationIconClass(operation) {
-	switch (operation) {
-		case 'create': return 'bg-green-100 text-green-600';
-		case 'edit': return 'bg-blue-100 text-blue-600';
-		case 'delete': return 'bg-red-100 text-red-600';
-		case 'move': return 'bg-purple-100 text-purple-600';
-		case 'reorder': return 'bg-gray-100 text-gray-600';
+function getChangeIconClass(changeType) {
+	switch (changeType) {
+		case 'added': return 'bg-green-100 text-green-600';
+		case 'modified': return 'bg-blue-100 text-blue-600';
+		case 'deleted': return 'bg-red-100 text-red-600';
+		case 'reordered': return 'bg-amber-100 text-amber-600';
 		default: return 'bg-gray-100 text-gray-600';
 	}
 }
 
-function getOperationTheme(operation) {
-	switch (operation) {
-		case 'create': return 'green';
-		case 'edit': return 'blue';
-		case 'delete': return 'red';
-		case 'move': return 'purple';
-		case 'reorder': return 'gray';
+function getChangeTheme(changeType) {
+	switch (changeType) {
+		case 'added': return 'green';
+		case 'modified': return 'blue';
+		case 'deleted': return 'red';
+		case 'reordered': return 'orange';
 		default: return 'gray';
 	}
 }
 
-function getOperationLabel(operation) {
-	switch (operation) {
-		case 'create': return __('New');
-		case 'edit': return __('Edit');
-		case 'delete': return __('Delete');
-		case 'move': return __('Move');
-		case 'reorder': return __('Reorder');
-		default: return operation;
+function getChangeLabel(changeType) {
+	switch (changeType) {
+		case 'added': return __('New');
+		case 'modified': return __('Modified');
+		case 'deleted': return __('Deleted');
+		case 'reordered': return __('Reordered');
+		default: return changeType;
 	}
 }
 
-function getContributionTitle(contrib) {
-	if (contrib.operation === 'create') {
-		return contrib.proposed_title || __('Untitled');
-	}
-	if (contrib.operation === 'edit') {
-		return contrib.proposed_title || contrib.original_title || __('Untitled');
-	}
-	return contrib.original_title || contrib.target_route || __('Unknown');
-}
-
-function getContributionDescription(contrib) {
-	switch (contrib.operation) {
-		case 'create':
-			return contrib.proposed_is_group
-				? __('New group to be created')
-				: __('New page to be created');
-		case 'edit':
-			const changes = [];
-			if (contrib.proposed_title && contrib.proposed_title !== contrib.original_title) {
-				changes.push(__('title'));
-			}
-			if (contrib.proposed_content && contrib.proposed_content !== contrib.original_content) {
-				changes.push(__('content'));
-			}
-			return changes.length > 0
-				? __('Changed: {0}', [changes.join(', ')])
-				: __('Content modified');
-		case 'delete':
+function getChangeDescription(changeType, isGroup) {
+	switch (changeType) {
+		case 'added':
+			return isGroup ? __('New group to be created') : __('New page to be created');
+		case 'modified':
+			return __('Content or metadata updated');
+		case 'deleted':
 			return __('Will be deleted');
-		case 'move':
-			return __('Will be moved to a new location');
-		case 'reorder':
-			return __('Position changed');
+		case 'reordered':
+			return __('Order updated');
 		default:
 			return '';
 	}
 }
 
 const bannerClass = computed(() => {
-	switch (props.batchStatus) {
+	switch (props.changeRequestStatus) {
 		case 'Draft':
 			return 'bg-blue-50 border-b border-blue-200 text-blue-800';
-		case 'Submitted':
-		case 'Under Review':
+		case 'In Review':
 			return 'bg-amber-50 border-b border-amber-200 text-amber-800';
+		case 'Changes Requested':
+			return 'bg-red-50 border-b border-red-200 text-red-800';
 		case 'Approved':
 			return 'bg-green-50 border-b border-green-200 text-green-800';
-		case 'Rejected':
-			return 'bg-red-50 border-b border-red-200 text-red-800';
+		case 'Merged':
+			return 'bg-green-50 border-b border-green-200 text-green-800';
 		default:
 			return 'bg-gray-50 border-b border-gray-200 text-gray-800';
 	}
 });
 
 const bannerIcon = computed(() => {
-	switch (props.batchStatus) {
+	switch (props.changeRequestStatus) {
 		case 'Draft':
 			return LucideGitBranch;
-		case 'Submitted':
-		case 'Under Review':
+		case 'In Review':
 			return LucideClock;
+		case 'Changes Requested':
+			return LucideXCircle;
 		case 'Approved':
 			return LucideCheckCircle;
-		case 'Rejected':
-			return LucideXCircle;
 		default:
 			return LucideAlertCircle;
 	}
 });
 
 const bannerTitle = computed(() => {
-	switch (props.batchStatus) {
+	switch (props.changeRequestStatus) {
 		case 'Draft':
-			return __('Contribution Mode');
-		case 'Submitted':
-			return __('Submitted for Review');
-		case 'Under Review':
-			return __('Under Review');
-		case 'Approved':
-			return __('Contribution Approved');
-		case 'Rejected':
+			return __('Change Request Draft');
+		case 'In Review':
+			return __('In Review');
+		case 'Changes Requested':
 			return __('Changes Requested');
+		case 'Approved':
+			return __('Approved');
+		case 'Merged':
+			return __('Merged');
 		default:
-			return __('Contribution');
+			return __('Change Request');
 	}
 });
 
 const bannerDescription = computed(() => {
-	switch (props.batchStatus) {
+	switch (props.changeRequestStatus) {
 		case 'Draft':
-			return __('Your changes will be saved as a draft and submitted for review');
-		case 'Submitted':
-			return __('Your contribution is waiting for a reviewer');
-		case 'Under Review':
-			return __('A reviewer is looking at your contribution');
+			return __('Your changes are saved as a draft change request');
+		case 'In Review':
+			return __('Your change request is being reviewed');
+		case 'Changes Requested':
+			return __('Please review the feedback and update your changes');
 		case 'Approved':
-			return __('Your contribution will be merged soon');
-		case 'Rejected':
-			return __('Please review the feedback and make changes');
+			return __('Approved and ready to merge');
+		case 'Merged':
+			return __('Your changes have been merged');
 		default:
 			return '';
 	}
 });
-
 </script>

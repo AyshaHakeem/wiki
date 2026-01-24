@@ -96,7 +96,7 @@ import {
   toast
 } from "frappe-ui";
 import LucidePlus from "~icons/lucide/plus";
-import { isWikiManager } from "@/composables/useContributionMode";
+import { isWikiManager } from "@/composables/useChangeRequest";
 
 const router = useRouter();
 const isManager = computed(() => isWikiManager());
