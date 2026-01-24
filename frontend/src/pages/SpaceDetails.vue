@@ -55,11 +55,26 @@
             />
         </aside>
 
-        <main class="flex-1 overflow-auto bg-surface-white min-w-0">
-            <router-view
-                :space-id="spaceId"
-                @refresh="refreshTree"
+        <main class="flex-1 flex flex-col bg-surface-white min-w-0">
+            <ContributionBanner
+                :isChangeRequestMode="isChangeRequestMode"
+                :changeRequestStatus="currentChangeRequest?.status || 'Draft'"
+                :changeCount="changeCount"
+                :changes="changesResource.data || []"
+                :submitReviewResource="submitReviewResource"
+                :archiveChangeRequestResource="archiveChangeRequestResource"
+                :mergeResource="mergeChangeRequestResource"
+                :canMerge="isManager"
+                @submit="handleSubmitChangeRequest"
+                @withdraw="handleArchiveChangeRequest"
+                @merge="handleMergeChangeRequest"
             />
+            <div class="flex-1 overflow-auto">
+                <router-view
+                    :space-id="spaceId"
+                    @refresh="refreshTree"
+                />
+            </div>
         </main>
 
         <Dialog v-model="showSettingsDialog">
@@ -166,11 +181,12 @@
 
 <script setup>
 import { ref, computed, watch, toRef } from 'vue';
-import { useRoute } from 'vue-router';
-import { createDocumentResource, createResource, Button, Dialog, Switch, FormControl } from 'frappe-ui';
+import { useRoute, useRouter } from 'vue-router';
+import { createDocumentResource, createResource, Button, Dialog, Switch, FormControl, toast } from 'frappe-ui';
 import WikiDocumentList from '../components/WikiDocumentList.vue';
+import ContributionBanner from '../components/ContributionBanner.vue';
 import { useSidebarResize } from '../composables/useSidebarResize';
-import { useChangeRequestMode, currentChangeRequest } from '../composables/useChangeRequest';
+import { useChangeRequestMode, currentChangeRequest, isWikiManager } from '../composables/useChangeRequest';
 
 const props = defineProps({
     spaceId: {
@@ -181,13 +197,23 @@ const props = defineProps({
 
 const route = useRoute();
 
+const router = useRouter();
 const spaceIdRef = toRef(props, 'spaceId');
 const {
     isChangeRequestMode,
+    changeCount,
     changesResource,
     initChangeRequest,
     loadChanges,
+    submitReviewResource,
+    archiveChangeRequestResource,
+    mergeChangeRequestResource,
+    submitForReview,
+    archiveChangeRequest,
+    mergeChangeRequest,
 } = useChangeRequestMode(spaceIdRef);
+
+const isManager = computed(() => isWikiManager());
 
 const showSettingsDialog = ref(false);
 const showUpdateRoutesDialog = ref(false);
@@ -334,5 +360,39 @@ async function refreshTree() {
     }
     await crTree.reload();
     await loadChanges();
+}
+
+async function handleSubmitChangeRequest() {
+    try {
+        const result = await submitForReview();
+        toast.success(__('Change request submitted for review'));
+        if (result?.name) {
+            router.push({ name: 'ChangeRequestReview', params: { changeRequestId: result.name } });
+        }
+    } catch (error) {
+        toast.error(error.messages?.[0] || __('Error submitting for review'));
+    }
+}
+
+async function handleArchiveChangeRequest() {
+    try {
+        await archiveChangeRequest();
+        toast.success(__('Change request archived'));
+    } catch (error) {
+        toast.error(error.messages?.[0] || __('Error archiving change request'));
+    }
+}
+
+async function handleMergeChangeRequest() {
+    try {
+        await mergeChangeRequest();
+        toast.success(__('Change request merged'));
+        currentChangeRequest.value = null;
+        await initChangeRequest();
+        await loadChanges();
+        await refreshTree();
+    } catch (error) {
+        toast.error(error.messages?.[0] || __('Error merging change request'));
+    }
 }
 </script>

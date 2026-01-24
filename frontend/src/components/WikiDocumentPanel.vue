@@ -1,20 +1,6 @@
 <template>
 	<div class="h-full flex flex-col">
 		<div v-if="wikiDoc.doc" class="h-full flex flex-col">
-			<ContributionBanner
-				:isChangeRequestMode="isChangeRequestMode"
-				:changeRequestStatus="currentChangeRequest?.status || 'Draft'"
-				:changeCount="changeCount"
-				:changes="changesResource.data || []"
-				:submitReviewResource="submitReviewResource"
-				:archiveChangeRequestResource="archiveChangeRequestResource"
-				:mergeResource="mergeChangeRequestResource"
-				:canMerge="isManager"
-				@submit="handleSubmitChangeRequest"
-				@withdraw="handleArchiveChangeRequest"
-				@merge="handleMergeChangeRequest"
-			/>
-
 			<div class="flex items-center justify-between p-6 pb-4 bg-surface-white shrink-0 border-b-2 border-b-gray-500/20">
 				<div class="flex items-center gap-2">
 					<h1 class="text-2xl font-semibold text-ink-gray-9">{{ displayTitle }}</h1>
@@ -70,11 +56,9 @@
 
 <script setup>
 import { ref, computed, watch, toRef, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { createDocumentResource, Badge, Button, Dropdown, createResource, toast } from "frappe-ui";
 import WikiEditor from './WikiEditor.vue';
-import ContributionBanner from './ContributionBanner.vue';
-import { useChangeRequestMode, useChangeRequest, currentChangeRequest, isWikiManager } from '@/composables/useChangeRequest';
+import { useChangeRequestMode, useChangeRequest, currentChangeRequest } from '@/composables/useChangeRequest';
 import LucideMoreVertical from '~icons/lucide/more-vertical';
 import LucideLock from '~icons/lucide/lock';
 import LucideExternalLink from '~icons/lucide/external-link';
@@ -98,17 +82,9 @@ const editorRef = ref(null);
 
 const spaceIdRef = toRef(props, 'spaceId');
 const {
-	isChangeRequestMode,
-	changeCount,
-	submitReviewResource,
-	archiveChangeRequestResource,
 	initChangeRequest,
 	loadChanges,
-	submitForReview,
-	archiveChangeRequest,
-	mergeChangeRequest,
 	changesResource,
-	mergeChangeRequestResource,
 } = useChangeRequestMode(spaceIdRef);
 
 const {
@@ -208,9 +184,7 @@ const editorKey = computed(() => {
 	return null;
 });
 
-const isManager = computed(() => isWikiManager());
-
-	const menuOptions = computed(() => {
+const menuOptions = computed(() => {
 		return [
 			{
 			label: displayPublished.value ? __('Unpublish') : __('Publish'),
@@ -266,38 +240,4 @@ async function saveContent(content) {
 	}
 }
 
-async function handleSubmitChangeRequest() {
-	try {
-		const result = await submitForReview();
-		toast.success(__('Change request submitted for review'));
-		if (result?.name) {
-			router.push({ name: 'ChangeRequestReview', params: { changeRequestId: result.name } });
-		}
-	} catch (error) {
-		toast.error(error.messages?.[0] || __('Error submitting for review'));
-	}
-}
-
-async function handleArchiveChangeRequest() {
-	try {
-		await archiveChangeRequest();
-		toast.success(__('Change request archived'));
-	} catch (error) {
-		toast.error(error.messages?.[0] || __('Error archiving change request'));
-	}
-}
-
-async function handleMergeChangeRequest() {
-	try {
-		await mergeChangeRequest();
-		toast.success(__('Change request merged'));
-		currentChangeRequest.value = null;
-		await initChangeRequest();
-		await loadChanges();
-		await loadCrPage();
-		emit('refresh');
-	} catch (error) {
-		toast.error(error.messages?.[0] || __('Error merging change request'));
-	}
-}
 </script>
