@@ -1004,6 +1004,9 @@ class TestSetRoute(IntegrationTestCase):
 		)
 		doc.insert(ignore_permissions=True)
 		self.test_spaces.append(doc.name)
+		# Track auto-created root_group for cleanup
+		if not root_group and doc.root_group:
+			self.test_docs.append(doc.root_group)
 		return doc
 
 	def test_nested_document_route_no_duplication(self):
@@ -1018,23 +1021,18 @@ class TestSetRoute(IntegrationTestCase):
 		The bug occurred because set_route() was appending full ancestor routes
 		(which already included the space prefix) instead of just ancestor slugs.
 		"""
-		# Create the document hierarchy: Root -> DocTypes -> Submittable -> Workflows
-		root_group = self._create_wiki_document("Route Test Root", is_group=True, slug="route-test-root")
+		# Create wiki space first (this auto-creates a root_group)
+		space = self._create_wiki_space("Documentation Space", "documentation", None)
+		root_group_name = space.root_group
+
+		# Create the document hierarchy under the space's root_group: Root -> DocTypes -> Submittable -> Workflows
 		doctypes = self._create_wiki_document(
-			"DocTypes", parent=root_group.name, is_group=True, slug="doctypes"
+			"DocTypes", parent=root_group_name, is_group=True, slug="doctypes"
 		)
 		submittable = self._create_wiki_document(
 			"Submittable", parent=doctypes.name, is_group=True, slug="submittable"
 		)
 		workflows = self._create_wiki_document("Workflows", parent=submittable.name, slug="workflows")
-
-		# Create wiki space with route "documentation"
-		self._create_wiki_space("Documentation Space", "documentation", root_group.name)
-
-		# Reload documents to get updated routes
-		doctypes.reload()
-		submittable.reload()
-		workflows.reload()
 
 		# Verify routes are correct without duplication
 		self.assertEqual(doctypes.route, "documentation/doctypes")
@@ -1053,20 +1051,18 @@ class TestSetRoute(IntegrationTestCase):
 		This specifically tests the code path where is_new() returns False
 		and get_ancestors() is used instead of traversing parent_wiki_document.
 		"""
-		# Create the document hierarchy
-		root_group = self._create_wiki_document("Regen Test Root", is_group=True, slug="regen-test-root")
+		# Create wiki space first (this auto-creates a root_group)
+		space = self._create_wiki_space("Regen Test Space", "regen-space", None)
+		root_group_name = space.root_group
+
+		# Create the document hierarchy under the space's root_group
 		parent_folder = self._create_wiki_document(
-			"Parent Folder", parent=root_group.name, is_group=True, slug="parent"
+			"Parent Folder", parent=root_group_name, is_group=True, slug="parent"
 		)
 		child_doc = self._create_wiki_document("Child Doc", parent=parent_folder.name, slug="child")
 
-		# Create wiki space
-		self._create_wiki_space("Regen Test Space", "regen-space", root_group.name)
-
-		# Reload to get initial routes
-		child_doc.reload()
-		initial_route = child_doc.route
-		self.assertEqual(initial_route, "regen-space/parent/child")
+		# Verify initial route is correct
+		self.assertEqual(child_doc.route, "regen-space/parent/child")
 
 		# Clear route and save to trigger regeneration
 		child_doc.route = None
@@ -1078,10 +1074,11 @@ class TestSetRoute(IntegrationTestCase):
 
 	def test_single_level_nesting_route(self):
 		"""Test route generation for a document one level deep."""
-		root_group = self._create_wiki_document("Single Level Root", is_group=True, slug="single-level-root")
-		child = self._create_wiki_document("Child Page", parent=root_group.name, slug="child-page")
+		# Create wiki space first (this auto-creates a root_group)
+		space = self._create_wiki_space("Single Level Space", "single", None)
+		root_group_name = space.root_group
 
-		self._create_wiki_space("Single Level Space", "single", root_group.name)
+		# Create child document under the space's root_group
+		child = self._create_wiki_document("Child Page", parent=root_group_name, slug="child-page")
 
-		child.reload()
 		self.assertEqual(child.route, "single/child-page")

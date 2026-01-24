@@ -197,7 +197,8 @@ test.describe('Change Request Flow', () => {
 				.locator('aside .draggable-item', { hasText: groupTitle })
 				.first();
 			await groupItem.hover();
-			await groupItem.locator('button').last().click();
+			// Click the three-dot menu button (in the row, not in nested content)
+			await groupItem.locator('> div').first().locator('button').last().click();
 			await page.getByText('Add Page', { exact: true }).click();
 			await page.getByRole('dialog').getByLabel('Title').fill(pageTitle);
 			await page
