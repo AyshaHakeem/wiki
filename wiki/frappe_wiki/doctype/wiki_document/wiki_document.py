@@ -89,7 +89,24 @@ class WikiDocument(NestedSet):
 		self.set_sort_order_for_new_document()
 		self.set_route()
 		self.remove_leading_slash_from_route()
+		self.validate_unique_route_for_leaves()
 		self.set_boilerplate_content()
+
+	def validate_unique_route_for_leaves(self):
+		"""Ensure no two leaf documents (non-groups) share the same route."""
+		if self.is_group or not self.route:
+			return
+
+		filters = {
+			"route": self.route,
+			"is_group": 0,
+			"name": ("!=", self.name),
+		}
+		existing = frappe.db.get_value("Wiki Document", filters, "name")
+		if existing:
+			frappe.throw(
+				_("Another page with the route '{0}' already exists: {1}").format(self.route, existing)
+			)
 
 	def set_doc_key(self):
 		"""Ensure doc_key is set and immutable."""

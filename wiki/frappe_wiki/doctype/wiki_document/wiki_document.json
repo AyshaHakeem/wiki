@@ -79,8 +79,7 @@
 			"fieldtype": "Data",
 			"in_list_view": 1,
 			"in_standard_filter": 1,
-			"label": "Route",
-			"unique": 1
+			"label": "Route"
 		},
 		{
 			"fieldname": "slug",
