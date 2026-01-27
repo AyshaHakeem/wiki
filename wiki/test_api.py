@@ -266,6 +266,69 @@ class TestReorderWikiDocumentsAPI(FrappeTestCase):
 		self.assertEqual(sort_orders["Q5"], 0)
 		self.assertEqual(sort_orders["Q6"], 1)
 
+	def test_reorder_preserves_routes(self):
+		"""Routes must never change during reorder — neither for simple sort-order
+		changes nor for reparenting.  A page's route is its permalink and must
+		remain stable regardless of where it sits in the tree."""
+		from wiki.api.wiki_space import reorder_wiki_documents
+
+		space = create_test_wiki_space()
+
+		# Build a small tree:
+		#   root_group
+		#   ├── group_a          (group)
+		#   │   ├── page_1       (leaf)
+		#   │   └── page_2       (leaf)
+		#   └── group_b          (group)
+		group_a = create_wiki_document(space.root_group, "Group A", is_group=True)
+		page_1 = create_wiki_document(group_a.name, "Page One")
+		page_2 = create_wiki_document(group_a.name, "Page Two")
+		group_b = create_wiki_document(space.root_group, "Group B", is_group=True)
+
+		# Record every route before any reorder
+		routes_before = {}
+		for doc in (group_a, page_1, page_2, group_b):
+			doc.reload()
+			routes_before[doc.name] = doc.route
+
+		frappe.set_user("Administrator")
+
+		# --- Case 1: simple sort-order swap (no parent change) ---
+		# Swap group_a and group_b among the root's children
+		siblings = json.dumps([group_b.name, group_a.name])
+		reorder_wiki_documents(
+			doc_name=group_b.name,
+			new_parent=space.root_group,
+			new_index=0,
+			siblings=siblings,
+		)
+
+		for doc_name, old_route in routes_before.items():
+			current_route = frappe.db.get_value("Wiki Document", doc_name, "route")
+			self.assertEqual(
+				current_route,
+				old_route,
+				f"Route of {doc_name} changed after sort-order reorder: "
+				f"{old_route!r} -> {current_route!r}",
+			)
+
+		# --- Case 2: reparent page_1 from group_a into group_b ---
+		siblings_in_b = json.dumps([page_1.name])
+		reorder_wiki_documents(
+			doc_name=page_1.name,
+			new_parent=group_b.name,
+			new_index=0,
+			siblings=siblings_in_b,
+		)
+
+		for doc_name, old_route in routes_before.items():
+			current_route = frappe.db.get_value("Wiki Document", doc_name, "route")
+			self.assertEqual(
+				current_route,
+				old_route,
+				f"Route of {doc_name} changed after reparent: " f"{old_route!r} -> {current_route!r}",
+			)
+
 	def test_reorder_detailed_debug(self):
 		"""Detailed test to trace exactly what happens during reorder.
 

@@ -1215,7 +1215,6 @@ def apply_merge_revision(space: Document, revision: Document) -> None:
 			content = frappe.get_value("Wiki Content Blob", content_blob, "content")
 			doc.content = content
 
-		doc.route = None
 		if doc.is_new():
 			doc.insert()
 			key_to_name[doc_key] = doc.name
