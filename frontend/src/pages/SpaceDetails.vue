@@ -383,7 +383,18 @@ async function handleArchiveChangeRequest() {
     }
 }
 
+function findNodeByDocKey(nodes, docKey) {
+    if (!nodes) return null;
+    for (const node of nodes) {
+        if (node.doc_key === docKey) return node;
+        const found = findNodeByDocKey(node.children, docKey);
+        if (found) return found;
+    }
+    return null;
+}
+
 async function handleMergeChangeRequest() {
+    const docKey = currentDraftKey.value;
     try {
         await mergeChangeRequest();
         toast.success(__('Change request merged'));
@@ -391,6 +402,13 @@ async function handleMergeChangeRequest() {
         await initChangeRequest();
         await loadChanges();
         await refreshTree();
+
+        if (docKey) {
+            const node = findNodeByDocKey(mergedTreeData.value?.children, docKey);
+            if (node?.document_name) {
+                router.push({ name: 'SpacePage', params: { spaceId: props.spaceId, pageId: node.document_name } });
+            }
+        }
     } catch (error) {
         toast.error(error.messages?.[0] || __('Error merging change request'));
     }
